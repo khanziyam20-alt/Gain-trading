@@ -1,33 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Admin Panel | Gain Trading</title>
+  <title>Admin Panel</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    body{background:#020617;color:white;font-family:Arial}
-    .box{max-width:900px;margin:auto;padding:20px}
-    .card{background:#0f172a;padding:15px;margin:10px 0;border-radius:10px}
-    input{width:100%;padding:8px;margin-top:6px}
-    button{margin-top:6px;padding:8px 12px;border:none;border-radius:6px}
-    .save{background:#22c55e}
-    .logout{background:#ef4444}
+    body{background:#020617;color:white;font-family:Arial;padding:20px}
   </style>
 </head>
+<body onload="guardAdmin();loadUsers();">
 
-<body>
-  <div class="box">
-    <h1>Admin Panel</h1>
-    <button class="logout" onclick="logout()">Logout</button>
-    <div id="users"></div>
-  </div>
+<h2>Admin Panel</h2>
+<button onclick="logout()">Logout</button>
 
-  <script type="module" src="firebase.js"></script>
-  <script>
-    setTimeout(() => {
-      guardAdmin();
-      loadUsers();
-    }, 500);
-  </script>
+<div id="users"></div>
+
+<script type="module" src="firebase.js"></script>
 </body>
 </html>
