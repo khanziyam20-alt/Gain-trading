@@ -1,7 +1,4 @@
-<script type="module">
-/* ===========================
-   🔥 FIREBASE IMPORTS
-=========================== */
+// 🔥 Firebase Imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getAuth,
@@ -17,14 +14,15 @@ import {
   getDoc,
   setDoc,
   getDocs,
-  collection
+  updateDoc,
+  collection,
+  addDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ===========================
-   🔐 FIREBASE CONFIG
-=========================== */
+/* 🔐 Firebase Config */
 const firebaseConfig = {
-  apiKey: "AIzaSyBMcir5UaGmJpyjwyHNdQAqPBTI15KKT",
+  apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
   authDomain: "gain-trading.firebaseapp.com",
   projectId: "gain-trading",
   storageBucket: "gain-trading.appspot.com",
@@ -32,122 +30,110 @@ const firebaseConfig = {
   appId: "1:158325829948:web:004921f55b11297c596e39"
 };
 
-/* ===========================
-   🔥 INIT
-=========================== */
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-/* ===========================
-   ✅ GOOGLE LOGIN (SAFE)
-=========================== */
-window.googleLogin = async () => {
-  await signInWithRedirect(auth, provider);
-};
+/* 🔐 LOGIN */
+window.googleLogin = () => signInWithRedirect(auth, provider);
 
-/* ===========================
-   🔁 HANDLE REDIRECT
-=========================== */
-getRedirectResult(auth).then(async (res) => {
-  if (!res) return;
-
+/* 🔁 REDIRECT RESULT */
+getRedirectResult(auth).then(async (res)=>{
+  if(!res) return;
   const u = res.user;
-  const ref = doc(db, "users", u.uid);
+  const ref = doc(db,"users",u.uid);
   const snap = await getDoc(ref);
 
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      name: u.displayName,
-      email: u.email,
-      role: "user",
-      balance: 0,
-      createdAt: Date.now()
+  if(!snap.exists()){
+    await setDoc(ref,{
+      name:u.displayName,
+      email:u.email,
+      role:"user",
+      balance:1000,       // 🔥 starting demo balance
+      profit:0,
+      createdAt:Date.now()
     });
   }
-
-  location.href = "user.html";
-}).catch(console.error);
-
-/* ===========================
-   👤 USER DASHBOARD
-=========================== */
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return;
-  if (!location.pathname.includes("user.html")) return;
-
-  const snap = await getDoc(doc(db, "users", user.uid));
-  if (!snap.exists()) return;
-
-  const d = snap.data();
-  uname.innerText = d.name;
-  uemail.innerText = d.email;
-  balance.innerText = "₹" + d.balance;
+  location.href="user.html";
 });
 
-/* ===========================
-   🔐 ADMIN GUARD
-=========================== */
-window.guardAdmin = () => {
-  onAuthStateChanged(auth, async (u) => {
-    if (!u) {
-      location.href = "index.html";
-      return;
-    }
+/* 👤 USER PAGE */
+onAuthStateChanged(auth, async (u)=>{
+  if(!u) return;
+  if(!location.pathname.includes("user.html")) return;
 
-    const s = await getDoc(doc(db, "users", u.uid));
-    if (!s.exists() || s.data().role !== "admin") {
-      alert("Admin only access");
-      location.href = "user.html";
+  const snap = await getDoc(doc(db,"users",u.uid));
+  if(!snap.exists()) return;
+
+  const d=snap.data();
+  uname.innerText=d.name;
+  uemail.innerText=d.email;
+  balance.innerText="₹"+d.balance;
+  profit.innerText="₹"+d.profit;
+});
+
+/* 📈 TRADING LOGIC (FAKE DEMO) */
+window.startTrading = async ()=>{
+  onAuthStateChanged(auth, async (u)=>{
+    if(!u) return;
+
+    const ref=doc(db,"users",u.uid);
+    const snap=await getDoc(ref);
+    if(!snap.exists()) return;
+
+    let bal=snap.data().balance;
+    let p=Math.floor(bal*0.01); // 1% profit
+    let newBal=bal+p;
+
+    await updateDoc(ref,{
+      balance:newBal,
+      profit:(snap.data().profit||0)+p
+    });
+
+    await addDoc(collection(db,"transactions"),{
+      uid:u.uid,
+      amount:p,
+      type:"profit",
+      time:serverTimestamp()
+    });
+
+    alert("Trading profit added");
+    location.reload();
+  });
+};
+
+/* 🔐 ADMIN GUARD */
+window.guardAdmin=()=>{
+  onAuthStateChanged(auth, async(u)=>{
+    if(!u) return location.href="index.html";
+    const s=await getDoc(doc(db,"users",u.uid));
+    if(s.data().role!=="admin"){
+      alert("Admin only");
+      location.href="user.html";
     }
   });
 };
 
-/* ===========================
-   👥 LOAD USERS (ADMIN)
-=========================== */
-window.loadUsers = async () => {
-  const box = document.getElementById("users");
-  if (!box) return;
-
-  box.innerHTML = "";
-  const q = await getDocs(collection(db, "users"));
-
-  q.forEach(d => {
-    const u = d.data();
-    box.innerHTML += `
-      <div class="user-card">
+/* 👥 ADMIN USERS */
+window.loadUsers=async()=>{
+  const box=document.getElementById("users");
+  box.innerHTML="";
+  const q=await getDocs(collection(db,"users"));
+  q.forEach(d=>{
+    const u=d.data();
+    box.innerHTML+=`
+      <div style="background:#0f172a;padding:12px;margin:10px;border-radius:10px">
         <b>${u.name}</b><br>
         ${u.email}<br>
-        Role: ${u.role}<br>
-        Balance:
-        <input id="bal_${d.id}" type="number" value="${u.balance}">
-        <button onclick="updateBalance('${d.id}')">Save</button>
-      </div>
-    `;
+        Balance: ₹${u.balance}<br>
+        Profit: ₹${u.profit||0}
+      </div>`;
   });
 };
 
-/* ===========================
-   💰 UPDATE BALANCE
-=========================== */
-window.updateBalance = async (uid) => {
-  const val = document.getElementById("bal_" + uid).value;
-  if (val === "") return alert("Enter balance");
-
-  await setDoc(doc(db, "users", uid), {
-    balance: Number(val)
-  }, { merge: true });
-
-  alert("Balance Updated");
-};
-
-/* ===========================
-   🚪 LOGOUT
-=========================== */
-window.logout = async () => {
+/* 🚪 LOGOUT */
+window.logout=async()=>{
   await signOut(auth);
-  location.href = "index.html";
+  location.href="index.html";
 };
-</script>
