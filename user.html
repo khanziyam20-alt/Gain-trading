@@ -3,62 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gain Trading - Full Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Money Control - Trading Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; }
-        #adminLink { display: none; background: #38bdf8; color: #0f172a; text-align: center; padding: 12px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-bottom: 20px; display: block; border: 2px solid white; }
+        :root { --primary: #2563eb; --accent: #10b981; --bg: #020617; --card: #0f172a; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; }
         .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .logout-btn { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .stat-card { background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155; margin-bottom: 20px; }
-        .label { color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; }
-        .value { font-size: 2.2rem; font-weight: bold; color: #10b981; margin: 10px 0; font-family: monospace; }
-        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
-        .action-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .deposit-btn { background: #10b981; color: white; }
+        
+        /* Dashboard Cards */
+        .stat-card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
+        .label { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .value { font-size: 2rem; font-weight: 800; color: var(--accent); margin: 5px 0; }
+        .invest-value { color: #38bdf8; font-size: 1.8rem; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        .action-btn { flex: 1; padding: 12px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
+        .deposit-btn { background: var(--accent); color: white; }
         .withdraw-btn { background: #f59e0b; color: white; }
-        .invest-btn { background: #38bdf8; color: #0f172a; width: 100%; margin-top: 10px; }
-        .chart-box { background: #1e293b; padding: 15px; border-radius: 15px; border: 1px solid #334155; height: 180px; margin-bottom: 20px; }
-        input { width: 94%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; }
+        .cashout-btn { background: #f43f5e; color: white; width: 100%; margin-top: 10px; }
+        .invest-btn { background: var(--primary); color: white; width: 100%; margin-top: 10px; }
+
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #334155; background: #020617; color: white; font-size: 1rem; }
+        
+        /* Transaction History */
+        .history-box { background: var(--card); border-radius: 20px; padding: 15px; margin-top: 20px; }
+        .history-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }
+        .status-pending { color: #f59e0b; }
+        .status-approved { color: var(--accent); }
+
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 100; }
-        .modal-content { background: #1e293b; padding: 30px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center; }
+        .modal-content { background: var(--card); padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; }
     </style>
 </head>
 <body>
 
-    <a href="admin.html" id="adminLink" style="display:none;">OPEN ADMIN CONTROL PANEL</a>
-
     <div class="nav">
-        <h2 id="userName" style="margin:0">Loading...</h2>
+        <h3 id="userName" style="margin:0">Loading...</h3>
         <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
 
     <div class="stat-card">
-        <div class="label">Live Wallet Balance</div>
-        <div class="value" id="mainBalance">$0.0000</div>
+        <div class="label">Total Wallet Balance</div>
+        <div class="value" id="mainBalance">₹0.00</div>
         <div class="btn-group">
             <button class="action-btn deposit-btn" onclick="openModal('Deposit')">Add Money</button>
             <button class="action-btn withdraw-btn" onclick="openModal('Withdraw')">Withdraw</button>
         </div>
     </div>
 
-    <div class="chart-box">
-        <canvas id="profitChart"></canvas>
+    <div class="stat-card">
+        <div class="label">Live Trading Amount</div>
+        <div class="value invest-value" id="liveInvest">₹0.00</div>
+        <div id="rateText" style="font-size: 0.8rem; color: #38bdf8;">Profit: 0% per min</div>
+        <button class="action-btn cashout-btn" id="cashOutBtn">Cash Out to Wallet</button>
     </div>
 
     <div class="stat-card">
-        <div class="label">Quick Invest & Trading</div>
-        <div id="rateLabel" style="font-size: 0.9rem; color: #38bdf8; margin: 10px 0;">Profit Rate: 0% per minute</div>
-        <input type="number" id="investAmount" placeholder="Enter amount to invest">
-        <button class="action-btn invest-btn" id="confirmInvest">Start Investment</button>
-        <p style="font-size: 0.75rem; color: #64748b; margin-top: 10px; text-align: center;">Profit is updated automatically every 60 seconds.</p>
+        <div class="label">New Investment</div>
+        <input type="number" id="investInput" placeholder="Enter amount in ₹">
+        <button class="action-btn invest-btn" id="startInvest">Start Investment</button>
     </div>
 
-    <div id="requestModal" class="modal">
+    <div class="history-box">
+        <div class="label" style="margin-bottom: 10px;">Transaction History</div>
+        <div id="historyList">
+            <div style="text-align: center; color: #475569; padding: 20px;">No history available</div>
+        </div>
+    </div>
+
+    <div id="reqModal" class="modal">
         <div class="modal-content">
             <h3 id="modalTitle">Request</h3>
-            <input type="number" id="reqAmount" placeholder="Enter Amount ($)">
-            <button class="action-btn deposit-btn" style="width:100%" onclick="submitRequest()">Submit to Admin</button>
+            <input type="number" id="reqAmount" placeholder="Amount (₹)">
+            <button class="action-btn deposit-btn" style="width:100%" onclick="submitRequest()">Submit Request</button>
             <button onclick="closeModal()" style="background:none; border:none; color:#94a3b8; margin-top:15px; cursor:pointer;">Cancel</button>
         </div>
     </div>
@@ -66,7 +84,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, collection, addDoc, getDoc, setDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, collection, addDoc, getDoc, setDoc, serverTimestamp, increment, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
@@ -82,81 +100,79 @@
         const db = getFirestore(app);
 
         let userRef;
-        let chart;
-        const ADMIN_EMAIL = "khanziyam20@gmail.com"; 
-
-        // Chart Initialization
-        const ctx = document.getElementById('profitChart').getContext('2d');
-        chart = new Chart(ctx, { 
-            type: 'line', 
-            data: { labels: [], datasets: [{ data: [], borderColor: '#10b981', tension: 0.4, fill: true, backgroundColor: 'rgba(16, 185, 129, 0.1)' }] }, 
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } } } 
-        });
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                if (user.email === ADMIN_EMAIL) document.getElementById('adminLink').style.display = 'block';
-                document.getElementById('userName').innerText = "Hello, " + user.displayName;
+                document.getElementById('userName').innerText = user.displayName;
                 userRef = doc(db, "users", user.uid);
                 
+                // Initialize user if new
                 const snap = await getDoc(userRef);
                 if (!snap.exists()) {
-                    await setDoc(userRef, { name: user.displayName, email: user.email, walletBalance: 0, profitRate: 0, lastUpdate: serverTimestamp() });
+                    await setDoc(userRef, { name: user.displayName, walletBalance: 0, investBalance: 0, profitRate: 0.1, lastUpdate: serverTimestamp() });
                 }
 
-                // Sync UI with Firestore
-                onSnapshot(userRef, (docSnap) => {
-                    const d = docSnap.data();
-                    if(d) {
-                        document.getElementById('mainBalance').innerText = `$${d.walletBalance.toFixed(4)}`;
-                        document.getElementById('rateLabel').innerText = `Profit Rate: ${d.profitRate}% per minute`;
-                        
-                        // Update Chart Graph
-                        chart.data.labels.push("");
-                        chart.data.datasets[0].data.push(d.walletBalance);
-                        if(chart.data.labels.length > 15) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
-                        chart.update('none');
-                    }
+                // Live Sync
+                onSnapshot(userRef, (ds) => {
+                    const d = ds.data();
+                    document.getElementById('mainBalance').innerText = `₹${d.walletBalance.toFixed(2)}`;
+                    document.getElementById('liveInvest').innerText = `₹${d.investBalance.toFixed(2)}`;
+                    document.getElementById('rateText').innerText = `Profit: ${d.profitRate}% per minute`;
                 });
 
-                // Logic: Profit Update every 60 seconds (Per Minute)
+                // Load History
+                const q = query(collection(db, "requests"), where("userId", "==", user.uid), orderBy("timestamp", "desc"));
+                onSnapshot(q, (s) => {
+                    const list = document.getElementById('historyList');
+                    list.innerHTML = "";
+                    s.forEach(doc => {
+                        const r = doc.data();
+                        list.innerHTML += `<div class="history-item">
+                            <span>${r.type}</span>
+                            <span>₹${r.amount}</span>
+                            <span class="status-${r.status}">${r.status}</span>
+                        </div>`;
+                    });
+                });
+
+                // Profit Engine (Per Minute)
                 setInterval(async () => {
-                    const userDoc = await getDoc(userRef);
-                    const data = userDoc.data();
-                    if (data.profitRate > 0 && data.walletBalance > 0) {
-                        const minuteProfit = (data.walletBalance * data.profitRate) / 100;
-                        await updateDoc(userRef, { 
-                            walletBalance: increment(minuteProfit),
-                            lastUpdate: serverTimestamp() 
-                        });
+                    const d = (await getDoc(userRef)).data();
+                    if (d.investBalance > 0 && d.profitRate > 0) {
+                        const profit = (d.investBalance * d.profitRate) / 100;
+                        await updateDoc(userRef, { investBalance: increment(profit), lastUpdate: serverTimestamp() });
                     }
-                }, 60000); 
+                }, 60000);
 
             } else { window.location.href = "index.html"; }
         });
 
-        // Investment Button Logic
-        document.getElementById('confirmInvest').onclick = async () => {
-            const amt = parseFloat(document.getElementById('investAmount').value);
-            const snap = await getDoc(userRef);
-            const currentBal = snap.data().walletBalance;
-
-            if (amt > 0 && amt <= currentBal) {
-                await updateDoc(userRef, { walletBalance: increment(-amt) });
-                alert("Investment of $" + amt + " started successfully!");
-            } else {
-                alert("Insufficient balance for investment!");
-            }
-        };
-
-        // Modal Logic
-        window.openModal = (t) => { window.currentType = t; document.getElementById('modalTitle').innerText = t + " Money"; document.getElementById('requestModal').style.display = 'flex'; }
-        window.closeModal = () => document.getElementById('requestModal').style.display = 'none';
+        // Functions
+        window.openModal = (t) => { window.currentType = t; document.getElementById('modalTitle').innerText = t; document.getElementById('reqModal').style.display = 'flex'; }
+        window.closeModal = () => document.getElementById('reqModal').style.display = 'none';
+        
         window.submitRequest = async () => {
             const val = parseFloat(document.getElementById('reqAmount').value);
             if(val > 0) {
-                await addDoc(collection(db, "requests"), { userId: auth.currentUser.uid, userName: auth.currentUser.displayName, userEmail: auth.currentUser.email, amount: val, type: window.currentType, timestamp: serverTimestamp() });
+                await addDoc(collection(db, "requests"), { userId: auth.currentUser.uid, amount: val, type: window.currentType, status: 'pending', timestamp: serverTimestamp() });
                 alert("Request Sent!"); closeModal();
+            }
+        };
+
+        document.getElementById('startInvest').onclick = async () => {
+            const amt = parseFloat(document.getElementById('investInput').value);
+            const d = (await getDoc(userRef)).data();
+            if (amt > 0 && amt <= d.walletBalance) {
+                await updateDoc(userRef, { walletBalance: increment(-amt), investBalance: increment(amt) });
+                alert("Trading Started!");
+            } else { alert("Insufficient Balance!"); }
+        };
+
+        document.getElementById('cashOutBtn').onclick = async () => {
+            const d = (await getDoc(userRef)).data();
+            if (d.investBalance > 0) {
+                await updateDoc(userRef, { walletBalance: increment(d.investBalance), investBalance: 0 });
+                alert("Money moved to Wallet!");
             }
         };
 
