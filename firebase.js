@@ -1,3 +1,6 @@
+// ===============================
+// 🔥 Firebase Imports
+// ===============================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getAuth,
@@ -6,16 +9,20 @@ import {
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
 import {
   getFirestore,
   doc,
   getDoc,
   setDoc,
   getDocs,
+  updateDoc,
   collection
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* 🔥 REAL Firebase Config */
+// ===============================
+// 🔥 Firebase Config (तुम्हारा वाला)
+// ===============================
 const firebaseConfig = {
   apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
   authDomain: "gain-trading.firebaseapp.com",
@@ -25,12 +32,15 @@ const firebaseConfig = {
   appId: "1:158325829948:web:004921f55b11297c596e39"
 };
 
+// ===============================
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-/* ✅ GOOGLE LOGIN */
+// ===============================
+// 🔐 GOOGLE LOGIN
+// ===============================
 window.googleLogin = async () => {
   try {
     const res = await signInWithPopup(auth, provider);
@@ -43,24 +53,95 @@ window.googleLogin = async () => {
       await setDoc(ref, {
         name: u.displayName,
         email: u.email,
-        role: "user",
+        role: "user",     // बाद में admin बनाना हो तो Firebase से बदलना
         balance: 0,
         createdAt: Date.now()
       });
     }
-    location.href = "user.html";
-  } catch (err) {
-    alert(err.message);
+
+    window.location.href = "user.html";
+  } catch (e) {
+    alert("Login failed");
+    console.error(e);
   }
 };
 
-/* 👤 USER DASHBOARD */
+// ===============================
+// 👤 USER DASHBOARD DATA
+// ===============================
 onAuthStateChanged(auth, async (user) => {
   if (!user) return;
 
-  const snap = await getDoc(doc(db, "users", user.uid));
+  const ref = doc(db, "users", user.uid);
+  const snap = await getDoc(ref);
   if (!snap.exists()) return;
 
+  const d = snap.data();
+
+  if (document.getElementById("uname")) {
+    document.getElementById("uname").innerText = d.name;
+    document.getElementById("uemail").innerText = d.email;
+    document.getElementById("balance").innerText = d.balance;
+  }
+});
+
+// ===============================
+// 🔐 ADMIN GUARD (admin.html में call करना)
+// ===============================
+window.guardAdmin = () => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      location.href = "index.html";
+      return;
+    }
+
+    const snap = await getDoc(doc(db, "users", user.uid));
+    if (!snap.exists() || snap.data().role !== "admin") {
+      alert("Admin only access");
+      location.href = "user.html";
+    }
+  });
+};
+
+// ===============================
+// 👥 ADMIN: LOAD ALL USERS
+// ===============================
+window.loadUsers = async () => {
+  const list = document.getElementById("users");
+  list.innerHTML = "";
+
+  const q = await getDocs(collection(db, "users"));
+  q.forEach(docu => {
+    const u = docu.data();
+    list.innerHTML += `
+      <tr>
+        <td>${u.name}</td>
+        <td>${u.email}</td>
+        <td>₹${u.balance}</td>
+        <td>${u.role}</td>
+      </tr>
+    `;
+  });
+};
+
+// ===============================
+// ➕ ADMIN: UPDATE USER BALANCE
+// ===============================
+window.updateBalance = async (uid, amount) => {
+  await updateDoc(doc(db, "users", uid), {
+    balance: Number(amount)
+  });
+  alert("Balance updated");
+  loadUsers();
+};
+
+// ===============================
+// 🚪 LOGOUT
+// ===============================
+window.logout = async () => {
+  await signOut(auth);
+  location.href = "index.html";
+};
   const d = snap.data();
   if (document.getElementById("uname")) {
     document.getElementById("uname").innerText = d.name;
