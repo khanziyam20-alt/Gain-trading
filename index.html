@@ -1,40 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
   <title>Gain Trading | Login</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <style>
     body{
       margin:0;
-      height:100vh;
+      min-height:100vh;
       display:flex;
       justify-content:center;
       align-items:center;
-      background:#0f172a;
+      background:#020617;
       font-family:Arial;
       color:white;
     }
     .card{
-      background:#020617;
+      background:#0f172a;
       padding:30px;
-      border-radius:15px;
+      border-radius:14px;
       width:320px;
       text-align:center;
     }
     button{
       width:100%;
-      padding:14px;
-      border:none;
-      border-radius:10px;
+      padding:12px;
+      margin-top:20px;
       background:#22c55e;
+      border:none;
+      border-radius:8px;
       font-size:16px;
       font-weight:bold;
+      cursor:pointer;
     }
   </style>
 </head>
-<body>
 
-<div class="card">
+<body>
+  <div class="card">
+    <h2>Gain Trading</h2>
+    <p>Login with Gmail</p>
+
+    <!-- 🔥 IMPORTANT -->
+    <button id="googleBtn">Continue with Google</button>
+  </div>
+
+  <!-- 🔥 Firebase JS -->
+  <script type="module" src="firebase.js"></script>
+</body>
+</html><div class="card">
   <h2>Gain Trading</h2>
   <p>Login with Gmail</p>
   <button onclick="googleLogin()">Continue with Google</button>
