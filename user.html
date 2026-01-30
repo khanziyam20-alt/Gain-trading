@@ -1,134 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Gain Trading</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; }
-        .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .logout-btn { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; }
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
-        .stat-card { background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155; }
-        .label { color: #94a3b8; font-size: 0.9rem; }
-        .value { font-size: 1.8rem; font-weight: bold; margin-top: 5px; font-family: monospace; }
-        .profit { color: #10b981; }
-        .chart-container { background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155; margin-bottom: 20px; }
-        input { background: #0f172a; border: 1px solid #334155; color: white; padding: 12px; border-radius: 8px; width: calc(100% - 26px); margin-bottom: 10px; }
-        .action-btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; background: #38bdf8; color: #0f172a; }
-    </style>
-</head>
-<body>
+<style>
+    /* New Styles for Request Buttons */
+    .request-section { display: flex; gap: 10px; margin-top: 20px; }
+    .add-btn { background: #10b981 !important; color: white !important; }
+    .withdraw-btn { background: #f59e0b !important; color: white !important; }
+    .modal { background: rgba(0,0,0,0.8); position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; }
+    .modal-content { background: #1e293b; padding: 30px; border-radius: 15px; width: 300px; border: 1px solid #334155; }
+</style>
 
-    <div class="nav">
-        <h2 id="userName">Welcome!</h2>
-        <button class="logout-btn" id="logoutBtn">Logout</button>
+<div class="stat-card" style="max-width: 400px; margin: auto; margin-top: 20px;">
+    <h3>Transactions</h3>
+    <div class="request-section">
+        <button class="action-btn add-btn" onclick="openModal('Deposit')">Deposit Money</button>
+        <button class="action-btn withdraw-btn" onclick="openModal('Withdraw')">Withdraw Money</button>
     </div>
+</div>
 
-    <div class="dashboard-grid">
-        <div class="stat-card">
-            <div class="label">Main Wallet Balance</div>
-            <div class="value" id="mainBalance">$0.00</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Live Profit</div>
-            <div class="value profit" id="liveProfit">+$0.0000</div>
-        </div>
+<div id="requestModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle">Request</h3>
+        <input type="number" id="requestAmount" placeholder="Enter Amount ($)">
+        <button class="action-btn" onclick="submitRequest()">Submit Request</button>
+        <button class="action-btn" style="background:none; color:#94a3b8;" onclick="closeModal()">Cancel</button>
     </div>
+</div>
 
-    <div class="chart-container">
-        <canvas id="profitChart" height="100"></canvas>
-    </div>
+<script type="module">
+    // ... (Existing Firebase Imports & Config) ...
+    import { addDoc, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <div class="stat-card" style="max-width: 400px; margin: auto;">
-        <input type="number" id="investAmount" placeholder="Amount to Invest">
-        <button class="action-btn" id="investBtn">Confirm Investment</button>
-        <p id="rateLabel" style="font-size: 0.8rem; color: #94a3b8; margin-top: 10px; text-align: center;"></p>
-    </div>
+    let requestType = "";
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    window.openModal = (type) => {
+        requestType = type;
+        document.getElementById('modalTitle').innerText = type + " Request";
+        document.getElementById('requestModal').style.display = 'flex';
+    };
 
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
-  authDomain: "gain-trading.firebaseapp.com",
-  databaseURL: "https://gain-trading-default-rtdb.firebaseio.com",
-  projectId: "gain-trading",
-  storageBucket: "gain-trading.firebasestorage.app",
-  messagingSenderId: "158325829948",
-  appId: "1:158325829948:web:004921f55b11297c596e39",
-  measurementId: "G-NS2Q5NEMMC"
-};
+    window.closeModal = () => {
+        document.getElementById('requestModal').style.display = 'none';
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+    window.submitRequest = async () => {
+        const amount = parseFloat(document.getElementById('requestAmount').value);
+        if (!amount || amount <= 0) return alert("Please enter a valid amount");
 
-        let mainBalance = 0;
-        let profitRate = 0;
-        let currentProfit = 0;
-        let userRef;
-
-        // Chart Setup
-        const ctx = document.getElementById('profitChart').getContext('2d');
-        const chart = new Chart(ctx, {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: 'Profit Growth', data: [], borderColor: '#10b981', tension: 0.4 }] },
-            options: { scales: { y: { display: false }, x: { display: false } } }
-        });
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('userName').innerText = `Hello, ${user.displayName.split(' ')[0]}`;
-                userRef = doc(db, "users", user.uid);
-                
-                onSnapshot(userRef, (snap) => {
-                    const data = snap.data();
-                    mainBalance = data.walletBalance || 0;
-                    profitRate = data.profitRate || 0;
-                    document.getElementById('mainBalance').innerText = `$${mainBalance.toFixed(2)}`;
-                    document.getElementById('rateLabel').innerText = `Current Rate: ${profitRate}% /sec`;
-                });
-                
-                setInterval(updateProfit, 1000);
-            } else {
-                window.location.href = "index.html";
-            }
-        });
-
-        function updateProfit() {
-            if (profitRate > 0 && mainBalance > 0) {
-                let gain = (mainBalance * profitRate) / 100;
-                currentProfit += gain;
-                document.getElementById('liveProfit').innerText = `+$${currentProfit.toFixed(4)}`;
-                
-                // Update Chart
-                chart.data.labels.push("");
-                chart.data.datasets[0].data.push(currentProfit);
-                if (chart.data.labels.length > 20) {
-                    chart.data.labels.shift();
-                    chart.data.datasets[0].data.shift();
-                }
-                chart.update();
-            }
-        }
-
-        document.getElementById('investBtn').onclick = async () => {
-            const amt = parseFloat(document.getElementById('investAmount').value);
-            if (amt > 0 && amt <= mainBalance) {
-                // Deduct from Main Balance
-                await updateDoc(userRef, { walletBalance: increment(-amt) });
-                alert("Investment Active!");
-            } else {
-                alert("Insufficient Balance");
-            }
-        };
-
-        document.getElementById('logoutBtn').onclick = () => signOut(auth);
-    </script>
-</body>
-</html>
+        try {
+            await addDoc(collection(db, "requests"), {
+                userId: auth.currentUser.uid,
+                userName: auth.currentUser.displayName,
+                userEmail: auth.currentUser.email,
+                amount: amount,
+                type: requestType,
+                status: "pending",
+                timestamp: new Date()
+            });
+            alert("Request sent to Admin for approval!");
+            closeModal();
+        } catch (e) { alert("Error: " + e.message); }
+    };
+    // ... (Existing Auth & Profit logic) ...
+</script>
