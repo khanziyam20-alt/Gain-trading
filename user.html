@@ -4,14 +4,28 @@
   <title>User Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body{margin:0;font-family:Arial;background:#020617;color:white;padding:20px}
-    .card{background:#020617;border:1px solid #1e293b;padding:20px;border-radius:12px}
+    body{
+      background:#020617;
+      color:white;
+      font-family:Arial;
+      padding:20px;
+    }
+    .card{
+      background:#0f172a;
+      padding:20px;
+      border-radius:15px;
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>User Dashboard</h2>
-    <p>Login Successful 🎉</p>
-  </div>
+
+<div class="card">
+  <h2>User Dashboard</h2>
+  <h3 id="uname"></h3>
+  <p id="uemail"></p>
+  <h2>Balance: ₹<span id="balance">0</span></h2>
+</div>
+
+<script type="module" src="firebase.js"></script>
 </body>
 </html>
