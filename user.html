@@ -2,28 +2,25 @@
 <html>
 <head>
   <title>User Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    body{
-      background:#020617;
-      color:white;
-      font-family:Arial;
-      padding:20px;
-    }
-    .card{
-      background:#0f172a;
-      padding:20px;
-      border-radius:15px;
-    }
+    body{background:#020617;color:white;font-family:Arial;padding:20px}
+    .card{background:#0f172a;padding:20px;border-radius:16px}
+    button{margin-top:10px;padding:10px;border:none;border-radius:8px;
+      background:#22c55e;font-weight:bold}
   </style>
 </head>
 <body>
 
 <div class="card">
   <h2>User Dashboard</h2>
-  <h3 id="uname"></h3>
-  <p id="uemail"></p>
-  <h2>Balance: ₹<span id="balance">0</span></h2>
+  <p>Name: <span id="uname"></span></p>
+  <p>Email: <span id="uemail"></span></p>
+  <p>Balance: <span id="balance"></span></p>
+  <p>Profit: <span id="profit"></span></p>
+
+  <button onclick="startTrading()">Start Trading</button>
+  <button onclick="logout()">Logout</button>
 </div>
 
 <script type="module" src="firebase.js"></script>
