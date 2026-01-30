@@ -1,49 +1,95 @@
 <!DOCTYPE html>
-<html>
+<html lang="hi">
 <head>
-  <meta charset="UTF-8">
-  <title>Gain Trading | Login</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <style>
-    body{
-      margin:0;
-      min-height:100vh;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      background:#020617;
-      font-family:Arial;
-      color:white;
-    }
-    .card{
-      background:#0f172a;
-      padding:30px;
-      border-radius:16px;
-      width:320px;
-      text-align:center;
-      box-shadow:0 20px 50px rgba(0,0,0,.6);
-    }
-    button{
-      width:100%;
-      padding:14px;
-      font-size:16px;
-      border:none;
-      border-radius:10px;
-      background:#22c55e;
-      font-weight:bold;
-      cursor:pointer;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Gain Trading</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: #1e293b; padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #334155; max-width: 350px; width: 90%; }
+        h1 { color: #38bdf8; margin-bottom: 10px; }
+        p { color: #94a3b8; margin-bottom: 30px; }
+        .google-btn { background: white; color: #1e293b; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; transition: 0.3s; }
+        .google-btn:hover { background: #e2e8f0; transform: translateY(-2px); }
+        .logo-icon { font-size: 3rem; margin-bottom: 15px; }
+    </style>
 </head>
-
 <body>
-  <div class="card">
-    <h2>Gain Trading</h2>
-    <p>Login with Gmail</p>
-    <button onclick="googleLogin()">Continue with Google</button>
-  </div>
 
-  <script type="module" src="firebase.js"></script>
+    <div class="login-card">
+        <div class="logo-icon">📈</div>
+        <h1>Gain Trading</h1>
+        <p>अपना प्रॉफिट शुरू करने के लिए लॉगिन करें</p>
+        
+        <button class="google-btn" id="loginBtn">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" width="20" alt="Google">
+            Google के साथ लॉगिन करें
+        </button>
+        
+        <div id="status" style="margin-top: 20px; font-size: 0.9rem; color: #38bdf8;"></div>
+    </div>
+
+    <script type="module">
+        // 1. Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 2. Your Firebase Config (अपनी डिटेल्स यहाँ भरें)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // 3. Initialize
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        // अगर यूजर पहले से लॉगिन है तो उसे सीधे डैशबोर्ड पर भेजें
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.location.href = "user.html";
+            }
+        });
+
+        // 4. Login Logic
+        document.getElementById('loginBtn').onclick = async () => {
+            const status = document.getElementById('status');
+            status.innerText = "प्रोसेसिंग...";
+
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+
+                // चेक करें कि यूजर डेटाबेस में है या नहीं
+                const userRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userRef);
+
+                if (!userSnap.exists()) {
+                    // नया यूजर: डेटाबेस में नई एंट्री बनाएं
+                    await setDoc(userRef, {
+                        name: user.displayName,
+                        email: user.email,
+                        walletBalance: 0,
+                        profitRate: 0, // एडमिन इसे बाद में बदलेगा
+                        createdAt: new Date()
+                    });
+                }
+
+                status.innerText = "सफल! रिडायरेक्ट हो रहा है...";
+                window.location.href = "user.html";
+
+            } catch (error) {
+                console.error(error);
+                status.innerText = "लॉगिन फेल: " + error.message;
+            }
+        };
+    </script>
 </body>
 </html>
