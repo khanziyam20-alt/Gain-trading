@@ -1,18 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <title>Admin Panel</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width">
+
 <style>
-body{background:#020617;color:white;font-family:Arial;padding:20px}
+body{
+  background:#020617;
+  color:white;
+  font-family:Arial;
+}
+.card{
+  background:#0f172a;
+  margin:15px;
+  padding:15px;
+  border-radius:10px;
+}
+input{width:100%;padding:6px;}
+button{margin-top:6px;}
 </style>
 </head>
-<body>
 
-<h2>Admin Panel</h2>
-<p>Admin access granted.</p>
-<button onclick="logout()">Logout</button>
+<body onload="guardAdmin(); loadUsers();">
+  <h2 style="text-align:center">Admin Panel</h2>
+  <div id="users"></div>
+  <button onclick="logout()">Logout</button>
 
-<script type="module" src="firebase.js"></script>
+  <script type="module" src="firebase.js"></script>
 </body>
 </html>
