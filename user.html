@@ -3,24 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Money Control - Live Trading</title>
+    <title>Money Control - Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #2563eb; --accent: #10b981; --bg: #020617; --card: #0f172a; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; }
         .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .logout-btn { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        
-        .stat-card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; position: relative; overflow: hidden; }
-        .label { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .logout-btn { background: #ef4444; border: none; padding: 8px 15px; border-radius: 8px; color: white; font-weight: bold; }
+        .stat-card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
+        .label { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; }
         .value { font-size: 2rem; font-weight: 800; color: var(--accent); margin: 5px 0; }
-        .invest-value { color: #38bdf8; font-size: 1.8rem; }
-        
-        .action-btn { width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-        .cashout-btn { background: #f43f5e; color: white; }
-        .history-btn { background: #334155; color: white; }
-        .invest-btn { background: var(--primary); color: white; }
-        
+        .invest-value { color: #38bdf8; }
+        .action-btn { width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; }
         input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; }
         .btn-row { display: flex; gap: 10px; }
     </style>
@@ -28,7 +22,7 @@
 <body>
 
     <div class="nav">
-        <h3 id="userName" style="margin:0">Loading...</h3>
+        <h3 id="userName">Loading...</h3>
         <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
 
@@ -36,29 +30,29 @@
         <div class="label">Main Wallet Balance</div>
         <div class="value" id="mainBalance">₹0.00</div>
         <div class="btn-row">
-            <button class="action-btn" style="background:var(--accent); color:white;" onclick="openReq('Deposit')">Add Money</button>
-            <button class="action-btn" style="background:#f59e0b; color:white;" onclick="openReq('Withdraw')">Withdraw</button>
+            <button class="action-btn" style="background:var(--accent); color:white;" id="addMoneyBtn">Add Money</button>
+            <button class="action-btn" style="background:#f59e0b; color:white;" id="withdrawBtn">Withdraw</button>
         </div>
     </div>
 
     <div class="stat-card">
-        <div class="label">Live Profit (Trading)</div>
+        <div class="label">Live Trading Balance</div>
         <div class="value invest-value" id="liveInvest">₹0.00</div>
-        <div id="rateText" style="font-size: 0.75rem; color: #38bdf8;">Rate: 0% per min</div>
-        <button class="action-btn cashout-btn" id="cashOutBtn">Cash Out to Wallet</button>
-        <button class="action-btn history-btn" onclick="window.location.href='history.html'">Transaction History</button>
+        <div id="rateText" style="font-size: 0.8rem; color:#38bdf8;">Profit Rate: 0%</div>
+        <button class="action-btn" style="background:#f43f5e; color:white;" id="cashOutBtn">Cash Out to Wallet</button>
+        <button class="action-btn" style="background:#334155; color:white;" onclick="window.location.href='history.html'">Transaction History</button>
     </div>
 
     <div class="stat-card">
-        <div class="label">Invest in Trading</div>
-        <input type="number" id="investInput" placeholder="Amount (₹)">
-        <button class="action-btn invest-btn" id="startInvest">Start Investment</button>
+        <div class="label">New Investment</div>
+        <input type="number" id="investAmount" placeholder="Enter Amount (₹)">
+        <button class="action-btn" style="background:var(--primary); color:white;" id="startInvestBtn">Start Trading</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, getDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, increment, collection, addDoc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
@@ -72,60 +66,79 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        let userRef;
-        let localInvestBalance = 0;
+        let userRef, currentUID, walletBal, investBal, pRate;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                currentUID = user.uid;
                 userRef = doc(db, "users", user.uid);
                 document.getElementById('userName').innerText = user.displayName;
 
-                // 1. Offline Profit Calculation
+                // Offline Profit calculation
                 const snap = await getDoc(userRef);
-                if(snap.exists()){
+                if(snap.exists()) {
                     const d = snap.data();
-                    const last = d.lastUpdate?.toDate().getTime() || new Date().getTime();
-                    const now = new Date().getTime();
-                    const mins = Math.floor((now - last) / 60000);
-                    
-                    if(mins > 0 && d.investBalance > 0) {
-                        const profit = (d.investBalance * (d.profitRate/100)) * mins;
+                    const last = d.lastUpdate?.toDate().getTime() || Date.now();
+                    const diff = Math.floor((Date.now() - last) / 60000);
+                    if(diff > 0 && d.investBalance > 0) {
+                        const profit = (d.investBalance * (d.profitRate/100)) * diff;
                         await updateDoc(userRef, { investBalance: increment(profit), lastUpdate: serverTimestamp() });
                     }
                 }
 
-                // 2. Real-time Sync
                 onSnapshot(userRef, (ds) => {
-                    const d = ds.data();
-                    document.getElementById('mainBalance').innerText = `₹${d.walletBalance.toFixed(2)}`;
-                    localInvestBalance = d.investBalance;
-                    document.getElementById('rateText').innerText = `Profit Rate: ${d.profitRate}% per minute`;
+                    const data = ds.data();
+                    walletBal = data.walletBalance;
+                    investBal = data.investBalance;
+                    pRate = data.profitRate;
+                    document.getElementById('mainBalance').innerText = `₹${walletBal.toFixed(2)}`;
+                    document.getElementById('liveInvest').innerText = `₹${investBal.toFixed(2)}`;
+                    document.getElementById('rateText').innerText = `Profit Rate: ${pRate}% per minute`;
                 });
 
-                // 3. Smooth 10 Paise Increment (Visual Only)
+                // 10 Paise Visual Increment
                 setInterval(() => {
-                    if(localInvestBalance > 0) {
-                        localInvestBalance += 0.10; // Har thodi der mein 10 paise badhega
-                        document.getElementById('liveInvest').innerText = `₹${localInvestBalance.toFixed(2)}`;
+                    if(investBal > 0) {
+                        investBal += 0.10;
+                        document.getElementById('liveInvest').innerText = `₹${investBal.toFixed(2)}`;
                     }
-                }, 3000); // Har 3 second mein update
-
-                // 4. Actual Database Update (Every 1 Min)
-                setInterval(async () => {
-                    if(localInvestBalance > 0) {
-                        await updateDoc(userRef, { investBalance: localInvestBalance, lastUpdate: serverTimestamp() });
-                    }
-                }, 60000);
+                }, 3000);
 
             } else { window.location.href = "index.html"; }
         });
 
-        // Cash Out Logic
+        // FIXED: Add & Withdraw Functions
+        const sendRequest = async (type) => {
+            const amt = prompt(`Enter ${type} amount:`);
+            if(amt && !isNaN(amt) && amt > 0) {
+                if(type === 'Withdraw' && amt > walletBal) return alert("Inadequate Balance!");
+                await addDoc(collection(db, "requests"), {
+                    userId: currentUID,
+                    userName: auth.currentUser.displayName,
+                    amount: parseFloat(amt),
+                    type: type,
+                    status: "pending",
+                    timestamp: serverTimestamp()
+                });
+                alert(`${type} request sent to Admin!`);
+            }
+        };
+
+        document.getElementById('addMoneyBtn').onclick = () => sendRequest('Deposit');
+        document.getElementById('withdrawBtn').onclick = () => sendRequest('Withdraw');
+
+        document.getElementById('startInvestBtn').onclick = async () => {
+            const amt = parseFloat(document.getElementById('investAmount').value);
+            if(amt > 0 && amt <= walletBal) {
+                await updateDoc(userRef, { walletBalance: increment(-amt), investBalance: increment(amt), lastUpdate: serverTimestamp() });
+                document.getElementById('investAmount').value = '';
+            } else { alert("Insufficient Wallet Balance!"); }
+        };
+
         document.getElementById('cashOutBtn').onclick = async () => {
-            if(localInvestBalance > 0) {
-                await updateDoc(userRef, { walletBalance: increment(localInvestBalance), investBalance: 0 });
-                localInvestBalance = 0;
-                alert("Paisa Wallet mein bhej diya gaya!");
+            if(investBal > 0) {
+                await updateDoc(userRef, { walletBalance: increment(investBal), investBalance: 0, lastUpdate: serverTimestamp() });
+                alert("Profit cashed out!");
             }
         };
 
