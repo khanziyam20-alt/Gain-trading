@@ -15,7 +15,7 @@
     }
 
     .container {
-      max-width: 900px;
+      max-width: 1000px;
       margin: auto;
       padding: 20px;
     }
@@ -25,16 +25,77 @@
       margin-bottom: 20px;
     }
 
-    .user-card {
+    table {
+      width: 100%;
+      border-collapse: collapse;
       background: #0f172a;
-      padding: 15px;
       border-radius: 10px;
-      margin-bottom: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      overflow: hidden;
     }
 
-    .user-card b {
-      font-size: 18px;
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    th {
+      background: #020617;
+      font-weight: bold;
+    }
+
+    tr:hover {
+      background: #020617;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      background: #22c55e;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      color: black;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .logout {
+      background: #ef4444;
+      color: white;
+      float: right;
+    }
+  </style>
+</head>
+
+<body onload="guardAdmin(); loadUsers();">
+
+  <div class="container">
+    <button class="btn logout" onclick="logout()">Logout</button>
+    <h1>Admin Panel</h1>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Balance</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody id="users">
+        <!-- Users load here -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 🔥 Firebase -->
+  <script type="module" src="firebase.js"></script>
+
+</body>
+</html>      font-size: 18px;
     }
 
     .user-card input {
