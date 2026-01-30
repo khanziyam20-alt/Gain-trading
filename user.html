@@ -1,40 +1,124 @@
 <!DOCTYPE html>
-<html>
+<html lang="hi">
 <head>
-<meta charset="UTF-8">
-<title>User Dashboard</title>
-<meta name="viewport" content="width=device-width">
-
-<style>
-body{
-  background:#020617;
-  color:white;
-  font-family:Arial;
-}
-.card{
-  background:#0f172a;
-  margin:30px;
-  padding:20px;
-  border-radius:14px;
-}
-button{
-  background:#ef4444;
-  border:none;
-  padding:10px 16px;
-  border-radius:8px;
-  color:white;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - Gain Trading</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: white; text-align: center; padding: 20px; }
+        .card { background: #1e293b; padding: 30px; border-radius: 20px; display: inline-block; min-width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #334155; }
+        h2 { margin-bottom: 5px; color: #38bdf8; }
+        #balance { font-size: 3rem; font-weight: bold; color: #10b981; margin: 20px 0; font-family: monospace; }
+        input { padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; width: 80%; margin-bottom: 15px; outline: none; }
+        .btn-group { display: flex; gap: 10px; justify-content: center; }
+        button { padding: 12px 20px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; transition: 0.3s; }
+        #investBtn { background: #38bdf8; color: #0f172a; }
+        #saveBtn { background: #f59e0b; color: #0f172a; }
+        button:hover { opacity: 0.8; transform: translateY(-2px); }
+    </style>
 </head>
-
 <body>
-  <div class="card">
-    <h2 id="uname"></h2>
-    <p id="uemail"></p>
-    <h3 id="ubalance"></h3>
-    <button onclick="logout()">Logout</button>
-  </div>
 
-  <script type="module" src="firebase.js"></script>
+    <div class="card">
+        <h2 id="userName">लोड हो रहा है...</h2>
+        <p style="color: #94a3b8;">आपका लाइव वॉलेट बैलेंस</p>
+        <div id="balance">₹0.0000</div>
+        
+        <input type="number" id="investAmount" placeholder="राशि दर्ज करें (जैसे 500)">
+        <br>
+        <div class="btn-group">
+            <button id="investBtn">इन्वेस्ट करें</button>
+            <button id="saveBtn">प्रॉफिट सेव करें</button>
+        </div>
+        <p id="status" style="font-size: 0.8rem; margin-top: 15px; color: #64748b;"></p>
+    </div>
+
+    <script type="module">
+        // 1. Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, increment, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 2. Your Firebase Config (अपनी डिटेल्स यहाँ भरें)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // 3. Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentBalance = 0;
+        let profitRate = 0; 
+        let interval;
+        let currentUserRef;
+
+        // 4. Auth State - चेक करें यूजर लॉगिन है या नहीं
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('userName').innerText = `नमस्ते, ${user.displayName.split(' ')[0]}!`;
+                currentUserRef = doc(db, "users", user.uid);
+                
+                // रियल-टाइम डेटा सुनना (Admin changes will reflect here)
+                onSnapshot(currentUserRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        currentBalance = data.walletBalance || 0;
+                        profitRate = data.profitRate || 0;
+                        
+                        document.getElementById('status').innerText = `प्रॉफिट रेट: ${profitRate}% प्रति सेकंड`;
+                        startLiveCounting();
+                    }
+                });
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+
+        // 5. रियल-टाइम बैलेंस बढ़ने का लॉजिक
+        function startLiveCounting() {
+            if (interval) clearInterval(interval);
+            if (profitRate <= 0) {
+                document.getElementById('balance').innerText = `₹${currentBalance.toFixed(4)}`;
+                return;
+            };
+
+            interval = setInterval(() => {
+                // फॉर्मूला: बैलेंस + (बैलेंस का X%)
+                currentBalance += (currentBalance * profitRate) / 100;
+                document.getElementById('balance').innerText = `₹${currentBalance.toFixed(4)}`;
+            }, 1000);
+        }
+
+        // 6. इन्वेस्ट बटन (डेटाबेस में पैसा जोड़ना)
+        document.getElementById('investBtn').onclick = async () => {
+            const amount = parseFloat(document.getElementById('investAmount').value);
+            if (!amount || amount <= 0) return alert("सही राशि डालें");
+
+            try {
+                await updateDoc(currentUserRef, {
+                    walletBalance: increment(amount)
+                });
+                document.getElementById('investAmount').value = "";
+                alert("इन्वेस्टमेंट सफल!");
+            } catch (e) { alert("Error: " + e.message); }
+        };
+
+        // 7. प्रॉफिट सेव बटन (बढ़े हुए बैलेंस को डेटाबेस में पक्का करना)
+        document.getElementById('saveBtn').onclick = async () => {
+            try {
+                await updateDoc(currentUserRef, {
+                    walletBalance: currentBalance
+                });
+                alert("आपका बढ़ा हुआ बैलेंस सेव कर लिया गया है!");
+            } catch (e) { alert("Error: " + e.message); }
+        };
+    </script>
 </body>
 </html>
