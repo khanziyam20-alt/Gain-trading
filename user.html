@@ -3,36 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gain Trading - Live Dashboard</title>
+    <title>Gain Trading - Full Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; }
-        #adminLink { display: none; background: #38bdf8; color: #0f172a; text-align: center; padding: 12px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-bottom: 20px; border: 2px solid white; }
+        #adminLink { display: none; background: #38bdf8; color: #0f172a; text-align: center; padding: 12px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-bottom: 20px; display: block; border: 2px solid white; }
         .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .logout-btn { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .stat-card { background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155; margin-bottom: 20px; }
-        .value { font-size: 2.5rem; font-weight: bold; color: #10b981; font-family: monospace; margin: 10px 0; }
-        .btn-group { display: flex; gap: 10px; }
-        .action-btn { flex: 1; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+        .label { color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; }
+        .value { font-size: 2.2rem; font-weight: bold; color: #10b981; margin: 10px 0; font-family: monospace; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .action-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .deposit-btn { background: #10b981; color: white; }
         .withdraw-btn { background: #f59e0b; color: white; }
-        .chart-box { background: #1e293b; padding: 15px; border-radius: 15px; border: 1px solid #334155; height: 150px; margin-top: 20px; }
+        .invest-btn { background: #38bdf8; color: #0f172a; width: 100%; margin-top: 10px; }
+        .chart-box { background: #1e293b; padding: 15px; border-radius: 15px; border: 1px solid #334155; height: 180px; margin-bottom: 20px; }
+        input { width: 94%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: #1e293b; padding: 30px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center; }
-        input { width: 90%; padding: 12px; margin: 15px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; }
     </style>
 </head>
 <body>
 
-    <a href="admin.html" id="adminLink">OPEN ADMIN CONTROL PANEL</a>
+    <a href="admin.html" id="adminLink" style="display:none;">OPEN ADMIN CONTROL PANEL</a>
 
     <div class="nav">
-        <h2 id="userName">Hello, Mohd Shahrukh</h2>
+        <h2 id="userName" style="margin:0">Loading...</h2>
         <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
 
     <div class="stat-card">
-        <div style="color: #94a3b8; font-size: 0.9rem;">LIVE WALLET BALANCE</div>
+        <div class="label">Live Wallet Balance</div>
         <div class="value" id="mainBalance">$0.0000</div>
         <div class="btn-group">
             <button class="action-btn deposit-btn" onclick="openModal('Deposit')">Add Money</button>
@@ -44,11 +46,19 @@
         <canvas id="profitChart"></canvas>
     </div>
 
+    <div class="stat-card">
+        <div class="label">Quick Invest & Trading</div>
+        <div id="rateLabel" style="font-size: 0.9rem; color: #38bdf8; margin: 10px 0;">Profit Rate: 0% per minute</div>
+        <input type="number" id="investAmount" placeholder="Enter amount to invest">
+        <button class="action-btn invest-btn" id="confirmInvest">Start Investment</button>
+        <p style="font-size: 0.75rem; color: #64748b; margin-top: 10px; text-align: center;">Profit is updated automatically every 60 seconds.</p>
+    </div>
+
     <div id="requestModal" class="modal">
         <div class="modal-content">
             <h3 id="modalTitle">Request</h3>
             <input type="number" id="reqAmount" placeholder="Enter Amount ($)">
-            <button class="action-btn deposit-btn" style="width:100%" onclick="submitRequest()">Submit Request</button>
+            <button class="action-btn deposit-btn" style="width:100%" onclick="submitRequest()">Submit to Admin</button>
             <button onclick="closeModal()" style="background:none; border:none; color:#94a3b8; margin-top:15px; cursor:pointer;">Cancel</button>
         </div>
     </div>
@@ -56,7 +66,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, collection, addDoc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, collection, addDoc, getDoc, setDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
@@ -75,7 +85,7 @@
         let chart;
         const ADMIN_EMAIL = "khanziyam20@gmail.com"; 
 
-        // Initialize Chart immediately
+        // Chart Initialization
         const ctx = document.getElementById('profitChart').getContext('2d');
         chart = new Chart(ctx, { 
             type: 'line', 
@@ -94,24 +104,52 @@
                     await setDoc(userRef, { name: user.displayName, email: user.email, walletBalance: 0, profitRate: 0, lastUpdate: serverTimestamp() });
                 }
 
+                // Sync UI with Firestore
                 onSnapshot(userRef, (docSnap) => {
                     const d = docSnap.data();
                     if(d) {
                         document.getElementById('mainBalance').innerText = `$${d.walletBalance.toFixed(4)}`;
-                        // Update Chart
+                        document.getElementById('rateLabel').innerText = `Profit Rate: ${d.profitRate}% per minute`;
+                        
+                        // Update Chart Graph
                         chart.data.labels.push("");
                         chart.data.datasets[0].data.push(d.walletBalance);
-                        if(chart.data.labels.length > 20) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
+                        if(chart.data.labels.length > 15) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
                         chart.update('none');
                     }
                 });
 
-                // Auto-sync time every 15 seconds
-                setInterval(() => { updateDoc(userRef, { lastUpdate: serverTimestamp() }); }, 15000);
+                // Logic: Profit Update every 60 seconds (Per Minute)
+                setInterval(async () => {
+                    const userDoc = await getDoc(userRef);
+                    const data = userDoc.data();
+                    if (data.profitRate > 0 && data.walletBalance > 0) {
+                        const minuteProfit = (data.walletBalance * data.profitRate) / 100;
+                        await updateDoc(userRef, { 
+                            walletBalance: increment(minuteProfit),
+                            lastUpdate: serverTimestamp() 
+                        });
+                    }
+                }, 60000); 
 
             } else { window.location.href = "index.html"; }
         });
 
+        // Investment Button Logic
+        document.getElementById('confirmInvest').onclick = async () => {
+            const amt = parseFloat(document.getElementById('investAmount').value);
+            const snap = await getDoc(userRef);
+            const currentBal = snap.data().walletBalance;
+
+            if (amt > 0 && amt <= currentBal) {
+                await updateDoc(userRef, { walletBalance: increment(-amt) });
+                alert("Investment of $" + amt + " started successfully!");
+            } else {
+                alert("Insufficient balance for investment!");
+            }
+        };
+
+        // Modal Logic
         window.openModal = (t) => { window.currentType = t; document.getElementById('modalTitle').innerText = t + " Money"; document.getElementById('requestModal').style.display = 'flex'; }
         window.closeModal = () => document.getElementById('requestModal').style.display = 'none';
         window.submitRequest = async () => {
