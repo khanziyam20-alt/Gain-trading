@@ -2,82 +2,77 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Money Control Trading - Smart Investing</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Money Control - Smart Trading</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #2563eb;
-            --secondary: #3b82f6;
-            --accent: #10b981;
             --bg: #020617;
-            --card: #0f172a;
+            --card-glass: rgba(15, 23, 42, 0.8);
         }
-        body { 
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
             font-family: 'Plus Jakarta Sans', sans-serif; 
-            background: var(--bg); 
-            color: white; 
-            margin: 0; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh;
-            overflow: hidden;
+            background: var(--bg); color: white; overflow: hidden;
         }
-        /* Glassmorphism Background */
-        .bg-glow {
-            position: absolute; width: 300px; height: 300px;
-            background: radial-gradient(circle, rgba(37,99,235,0.2) 0%, transparent 70%);
-            z-index: -1; top: 20%; left: 10%;
+        /* Full Screen Background Layout */
+        .main-container {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            padding: 20px;
+            background: radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.15) 0%, transparent 80%);
         }
-        .login-card { 
-            background: var(--card); 
-            padding: 48px 32px; 
-            border-radius: 32px; 
-            text-align: center; 
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); 
-            border: 1px solid rgba(255,255,255,0.1); 
-            width: 90%; max-width: 400px;
-            backdrop-filter: blur(10px);
+        .logo-section { text-align: center; margin-bottom: 40px; }
+        .app-logo {
+            width: 100px; height: 100px; background: var(--primary);
+            border-radius: 24px; margin: 0 auto 20px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 3rem; box-shadow: 0 20px 40px rgba(37, 99, 235, 0.3);
+            border: 2px solid rgba(255,255,255,0.1);
         }
-        .logo-box {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            width: 80px; height: 80px; margin: 0 auto 24px;
-            border-radius: 20px; display: flex; align-items: center; justify-content: center;
-            font-size: 2.5rem; box-shadow: 0 10px 20px rgba(37,99,235,0.3);
-        }
-        h1 { font-size: 1.75rem; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
-        .tagline { color: #94a3b8; font-size: 0.95rem; margin: 12px 0 40px 0; }
-        
-        .google-btn { 
-            background: white; color: #0f172a; border: none; padding: 16px; 
-            border-radius: 16px; font-weight: 700; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center; 
-            gap: 12px; width: 100%; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            font-size: 1rem;
-        }
-        .google-btn:hover { transform: scale(1.02); box-shadow: 0 10px 20px rgba(255,255,255,0.1); }
-        .google-icon { width: 24px; height: 24px; }
+        h1 { font-size: 2.5rem; font-weight: 800; margin: 0; letter-spacing: -1px; }
+        .tagline { color: #94a3b8; font-size: 1.1rem; margin-top: 10px; font-style: italic; }
 
-        .footer { margin-top: 40px; font-size: 0.75rem; color: #475569; }
+        /* Enhanced Google Button */
+        .login-box { width: 100%; max-width: 340px; }
+        .google-btn { 
+            background: white; color: #0f172a; border: none; 
+            width: 100%; padding: 18px; border-radius: 20px;
+            font-weight: 700; font-size: 1.1rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            gap: 15px; transition: 0.3s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .google-btn:active { transform: scale(0.96); }
+        .google-icon { width: 24px; height: 24px; display: block; }
+
+        .footer {
+            position: absolute; bottom: 30px;
+            font-size: 0.8rem; color: #475569; text-align: center;
+        }
         .footer strong { color: #94a3b8; }
-        #status { margin-top: 20px; font-size: 0.85rem; color: var(--accent); }
+        #status { margin-top: 20px; font-size: 0.9rem; color: #10b981; }
     </style>
 </head>
 <body>
-    <div class="bg-glow"></div>
-    
-    <div class="login-card">
-        <div class="logo-box">📈</div>
-        <h1>Money Control</h1>
-        <p class="tagline">Invest in your future with confidence</p>
-        
-        <button class="google-btn" id="loginBtn">
-            <img class="google-icon" src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" alt="Google Logo">
-            Continue with Google
-        </button>
-        
-        <div id="status"></div>
+
+    <div class="main-container">
+        <div class="logo-section">
+            <div class="app-logo">📈</div>
+            <h1>Money Control</h1>
+            <p class="tagline">"Apne paiso ko kaam par lagaye"</p>
+        </div>
+
+        <div class="login-box">
+            <button class="google-btn" id="loginBtn">
+                <img class="google-icon" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+                Continue with Google
+            </button>
+            <div id="status" style="text-align: center;"></div>
+        </div>
 
         <div class="footer">
             Design & Developed by <strong>Mohd Shahrukh</strong>
@@ -87,9 +82,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Firebase Config from your screenshot
         const firebaseConfig = {
             apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
             authDomain: "gain-trading.firebaseapp.com",
@@ -108,7 +102,7 @@
 
         document.getElementById('loginBtn').onclick = async () => {
             const status = document.getElementById('status');
-            status.innerText = "Connecting to Secure Server...";
+            status.innerText = "Securing Connection...";
             try {
                 const result = await signInWithPopup(auth, provider);
                 const user = result.user;
@@ -121,7 +115,7 @@
                         email: user.email,
                         walletBalance: 0,
                         profitRate: 0,
-                        createdAt: new Date()
+                        lastUpdate: serverTimestamp()
                     });
                 }
                 window.location.href = "user.html";
