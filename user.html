@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Dashboard - Gain Trading</title>
+    <title>Gain Trading - User Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; }
         #adminLink { display: none; background: #38bdf8; color: #0f172a; text-align: center; padding: 12px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-bottom: 20px; border: 2px solid white; }
-        .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
-        .logout-btn { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .logout-btn { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; }
         .stat-card { background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155; margin-bottom: 20px; }
-        .value { font-size: 2.2rem; font-weight: bold; color: #10b981; font-family: monospace; }
+        .value { font-size: 2rem; font-weight: bold; color: #10b981; font-family: monospace; }
         .btn-group { display: flex; gap: 10px; margin-top: 15px; }
         .action-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .deposit-btn { background: #10b981; color: white; }
@@ -26,14 +26,12 @@
     <a href="admin.html" id="adminLink">OPEN ADMIN CONTROL PANEL</a>
 
     <div class="nav">
-        <div>
-            <h2 id="userName">Syncing...</h2>
-        </div>
+        <h2 id="userName">Syncing Data...</h2>
         <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
 
     <div class="stat-card">
-        <div style="color: #94a3b8; font-size: 0.8rem;">LIVE WALLET BALANCE</div>
+        <div style="color: #94a3b8; font-size: 0.8rem;">TOTAL WALLET BALANCE</div>
         <div class="value" id="mainBalance">$0.0000</div>
         <div class="btn-group">
             <button class="action-btn deposit-btn" onclick="openModal('Deposit')">Add Money</button>
@@ -57,7 +55,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, collection, addDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, collection, addDoc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
@@ -78,60 +76,63 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                // Show Admin Button
                 if (user.email === ADMIN_EMAIL) document.getElementById('adminLink').style.display = 'block';
-                document.getElementById('userName').innerText = "Hello, " + user.displayName;
+                
+                document.getElementById('userName').innerText = "Welcome, " + user.displayName;
                 userRef = doc(db, "users", user.uid);
                 
-                // --- Logic for Offline Profit ---
+                // --- ERROR FIX: Auto-Create User Document ---
                 const snap = await getDoc(userRef);
-                if (snap.exists()) {
+                if (!snap.exists()) {
+                    await setDoc(userRef, {
+                        name: user.displayName,
+                        email: user.email,
+                        walletBalance: 0,
+                        profitRate: 0,
+                        lastUpdate: serverTimestamp()
+                    });
+                } else {
+                    // Offline Profit Logic
                     const data = snap.data();
                     if (data.lastUpdate && data.profitRate > 0) {
-                        const now = Date.now();
-                        const lastTime = data.lastUpdate.toMillis();
-                        const secondsPassed = Math.floor((now - lastTime) / 1000);
-                        
+                        const secondsPassed = Math.floor((Date.now() - data.lastUpdate.toMillis()) / 1000);
                         if (secondsPassed > 0) {
-                            const offlineProfit = (data.walletBalance * data.profitRate / 100) * secondsPassed;
-                            await updateDoc(userRef, { 
-                                walletBalance: data.walletBalance + offlineProfit,
-                                lastUpdate: serverTimestamp() 
-                            });
+                            const profit = (data.walletBalance * data.profitRate / 100) * secondsPassed;
+                            await updateDoc(userRef, { walletBalance: data.walletBalance + profit, lastUpdate: serverTimestamp() });
                         }
                     }
                 }
 
-                // Real-time UI updates
+                // Sync UI with Database
                 onSnapshot(userRef, (docSnap) => {
                     const d = docSnap.data();
-                    document.getElementById('mainBalance').innerText = `$${d.walletBalance.toFixed(4)}`;
-                    updateChart(d.walletBalance);
+                    if(d) {
+                        document.getElementById('mainBalance').innerText = `$${d.walletBalance.toFixed(4)}`;
+                        updateChart(d.walletBalance);
+                    }
                 });
 
-                // Auto-save every 10 seconds to keep lastUpdate fresh
-                setInterval(() => {
-                    updateDoc(userRef, { lastUpdate: serverTimestamp() });
-                }, 10000);
+                // Periodic Heartbeat to save time
+                setInterval(() => { updateDoc(userRef, { lastUpdate: serverTimestamp() }); }, 15000);
 
             } else { window.location.href = "index.html"; }
         });
 
-        // Request System
+        // Request Functions
         window.openModal = (t) => { window.currentType = t; document.getElementById('modalTitle').innerText = t; document.getElementById('requestModal').style.display = 'flex'; }
         window.closeModal = () => document.getElementById('requestModal').style.display = 'none';
         window.submitRequest = async () => {
             const val = parseFloat(document.getElementById('reqAmount').value);
             if(val > 0) {
-                await addDoc(collection(db, "requests"), { userId: auth.currentUser.uid, userName: auth.currentUser.displayName, amount: val, type: window.currentType, status: 'pending' });
-                alert("Request Sent!"); closeModal();
+                await addDoc(collection(db, "requests"), { userId: auth.currentUser.uid, userName: auth.currentUser.displayName, userEmail: auth.currentUser.email, amount: val, type: window.currentType, timestamp: serverTimestamp() });
+                alert("Request Sent to Admin!"); closeModal();
             }
         };
 
-        // Chart Init
         const ctx = document.getElementById('profitChart').getContext('2d');
         chart = new Chart(ctx, { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: '#10b981', tension: 0.4 }] }, options: { scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } } } });
-        function updateChart(v) { chart.data.labels.push(""); chart.data.datasets[0].data.push(v); if(chart.data.labels.length > 15) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); } chart.update(); }
-
+        function updateChart(v) { chart.data.labels.push(""); chart.data.datasets[0].data.push(v); if(chart.data.labels.length > 15) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); } chart.update('none'); }
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
     </script>
 </body>
