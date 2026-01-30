@@ -1,37 +1,37 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Gain Trading</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; padding: 20px; }
+        body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; padding: 20px; }
         .container { max-width: 900px; margin: auto; }
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 10px; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 10px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 12px; overflow: hidden; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #334155; }
-        th { background: #334155; color: #38bdf8; }
-        input[type="number"] { padding: 8px; border-radius: 5px; border: 1px solid #475569; background: #0f172a; color: white; width: 70px; }
-        .update-btn { background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .update-btn:hover { background: #059669; }
-        .admin-badge { background: #38bdf8; color: #0f172a; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+        th { background: #334155; color: #38bdf8; font-size: 0.9rem; text-transform: uppercase; }
+        input[type="number"] { padding: 8px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; width: 80px; outline: none; }
+        .update-btn { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .update-btn:hover { background: #059669; transform: translateY(-1px); }
+        .admin-badge { background: #38bdf8; color: #0f172a; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <header>
-            <h1>एडमिन कंट्रोलर</h1>
-            <span class="admin-badge">Admin Mode</span>
+            <h1>Admin Controller</h1>
+            <span class="admin-badge">Management Mode</span>
         </header>
 
         <table>
             <thead>
                 <tr>
-                    <th>यूजर नाम</th>
-                    <th>बैलेंस (INR)</th>
-                    <th>प्रॉफ़िट रेट (%/Sec)</th>
-                    <th>एक्शन</th>
+                    <th>User Details</th>
+                    <th>Wallet Balance</th>
+                    <th>Profit Rate (%/Sec)</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody id="userList">
@@ -40,12 +40,10 @@
     </div>
 
     <script type="module">
-        // 1. Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 2. Your Firebase Config (अपनी डिटेल्स यहाँ भरें)
         // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
@@ -58,25 +56,22 @@ const firebaseConfig = {
   measurementId: "G-NS2Q5NEMMC"
 };
 
-        // 3. Initialize
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // अपनी एडमिन ईमेल यहाँ डालें
+        // Updated Admin Email
         const ADMIN_EMAIL = "khanziyam20@gmail.com"; 
 
-        // 4. Security Check: केवल एडमिन ही देख सके
         onAuthStateChanged(auth, (user) => {
-            if (!user || user.email !== ADMIN_EMAIL) {
-                alert("अनुमति नहीं है! आप एडमिन नहीं हैं।");
+            if (!user || user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+                alert("Access Denied! You are not an administrator.");
                 window.location.href = "index.html";
             } else {
                 loadUsers();
             }
         });
 
-        // 5. यूजर्स की लिस्ट लोड करना
         function loadUsers() {
             onSnapshot(collection(db, "users"), (snapshot) => {
                 const userList = document.getElementById('userList');
@@ -88,13 +83,16 @@ const firebaseConfig = {
 
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td>${data.name}<br><small style="color:#94a3b8">${data.email}</small></td>
-                        <td>₹${data.walletBalance.toFixed(2)}</td>
+                        <td>
+                            <strong>${data.name}</strong><br>
+                            <small style="color:#94a3b8">${data.email}</small>
+                        </td>
+                        <td>$${(data.walletBalance || 0).toFixed(2)}</td>
                         <td>
                             <input type="number" id="rate-${id}" value="${data.profitRate || 0}" step="0.01">
                         </td>
                         <td>
-                            <button class="update-btn" onclick="saveRate('${id}')">अपडेट</button>
+                            <button class="update-btn" onclick="saveRate('${id}')">Update</button>
                         </td>
                     `;
                     userList.appendChild(tr);
@@ -102,16 +100,15 @@ const firebaseConfig = {
             });
         }
 
-        // 6. डेटाबेस अपडेट करने का फंक्शन (Global Window Object के लिए)
         window.saveRate = async (userId) => {
             const newRate = parseFloat(document.getElementById(`rate-${userId}`).value);
             try {
                 await updateDoc(doc(db, "users", userId), {
                     profitRate: newRate
                 });
-                alert("रेट अपडेट हो गया!");
+                alert("Profit rate updated successfully!");
             } catch (e) {
-                alert("Error: " + e.message);
+                alert("Update failed: " + e.message);
             }
         };
     </script>
