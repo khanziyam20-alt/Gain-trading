@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gain Trading - User Dashboard</title>
+    <title>Gain Trading - Live Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; margin: 0; padding: 20px; }
         #adminLink { display: none; background: #38bdf8; color: #0f172a; text-align: center; padding: 12px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-bottom: 20px; border: 2px solid white; }
         .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .logout-btn { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; }
+        .logout-btn { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .stat-card { background: #1e293b; padding: 20px; border-radius: 15px; border: 1px solid #334155; margin-bottom: 20px; }
-        .value { font-size: 2rem; font-weight: bold; color: #10b981; font-family: monospace; }
-        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
-        .action-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .value { font-size: 2.5rem; font-weight: bold; color: #10b981; font-family: monospace; margin: 10px 0; }
+        .btn-group { display: flex; gap: 10px; }
+        .action-btn { flex: 1; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 1rem; }
         .deposit-btn { background: #10b981; color: white; }
         .withdraw-btn { background: #f59e0b; color: white; }
+        .chart-box { background: #1e293b; padding: 15px; border-radius: 15px; border: 1px solid #334155; height: 150px; margin-top: 20px; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: #1e293b; padding: 30px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center; }
         input { width: 90%; padding: 12px; margin: 15px 0; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; }
@@ -26,12 +27,12 @@
     <a href="admin.html" id="adminLink">OPEN ADMIN CONTROL PANEL</a>
 
     <div class="nav">
-        <h2 id="userName">Syncing Data...</h2>
+        <h2 id="userName">Hello, Mohd Shahrukh</h2>
         <button class="logout-btn" id="logoutBtn">Logout</button>
     </div>
 
     <div class="stat-card">
-        <div style="color: #94a3b8; font-size: 0.8rem;">TOTAL WALLET BALANCE</div>
+        <div style="color: #94a3b8; font-size: 0.9rem;">LIVE WALLET BALANCE</div>
         <div class="value" id="mainBalance">$0.0000</div>
         <div class="btn-group">
             <button class="action-btn deposit-btn" onclick="openModal('Deposit')">Add Money</button>
@@ -39,8 +40,8 @@
         </div>
     </div>
 
-    <div style="background: #1e293b; padding: 15px; border-radius: 15px; border: 1px solid #334155;">
-        <canvas id="profitChart" height="100"></canvas>
+    <div class="chart-box">
+        <canvas id="profitChart"></canvas>
     </div>
 
     <div id="requestModal" class="modal">
@@ -72,67 +73,55 @@
 
         let userRef;
         let chart;
-        const ADMIN_EMAIL = "khanziyam20@gmail.com";
+        const ADMIN_EMAIL = "khanziyam20@gmail.com"; 
+
+        // Initialize Chart immediately
+        const ctx = document.getElementById('profitChart').getContext('2d');
+        chart = new Chart(ctx, { 
+            type: 'line', 
+            data: { labels: [], datasets: [{ data: [], borderColor: '#10b981', tension: 0.4, fill: true, backgroundColor: 'rgba(16, 185, 129, 0.1)' }] }, 
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } } } 
+        });
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // Show Admin Button
                 if (user.email === ADMIN_EMAIL) document.getElementById('adminLink').style.display = 'block';
-                
-                document.getElementById('userName').innerText = "Welcome, " + user.displayName;
+                document.getElementById('userName').innerText = "Hello, " + user.displayName;
                 userRef = doc(db, "users", user.uid);
                 
-                // --- ERROR FIX: Auto-Create User Document ---
                 const snap = await getDoc(userRef);
                 if (!snap.exists()) {
-                    await setDoc(userRef, {
-                        name: user.displayName,
-                        email: user.email,
-                        walletBalance: 0,
-                        profitRate: 0,
-                        lastUpdate: serverTimestamp()
-                    });
-                } else {
-                    // Offline Profit Logic
-                    const data = snap.data();
-                    if (data.lastUpdate && data.profitRate > 0) {
-                        const secondsPassed = Math.floor((Date.now() - data.lastUpdate.toMillis()) / 1000);
-                        if (secondsPassed > 0) {
-                            const profit = (data.walletBalance * data.profitRate / 100) * secondsPassed;
-                            await updateDoc(userRef, { walletBalance: data.walletBalance + profit, lastUpdate: serverTimestamp() });
-                        }
-                    }
+                    await setDoc(userRef, { name: user.displayName, email: user.email, walletBalance: 0, profitRate: 0, lastUpdate: serverTimestamp() });
                 }
 
-                // Sync UI with Database
                 onSnapshot(userRef, (docSnap) => {
                     const d = docSnap.data();
                     if(d) {
                         document.getElementById('mainBalance').innerText = `$${d.walletBalance.toFixed(4)}`;
-                        updateChart(d.walletBalance);
+                        // Update Chart
+                        chart.data.labels.push("");
+                        chart.data.datasets[0].data.push(d.walletBalance);
+                        if(chart.data.labels.length > 20) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
+                        chart.update('none');
                     }
                 });
 
-                // Periodic Heartbeat to save time
+                // Auto-sync time every 15 seconds
                 setInterval(() => { updateDoc(userRef, { lastUpdate: serverTimestamp() }); }, 15000);
 
             } else { window.location.href = "index.html"; }
         });
 
-        // Request Functions
-        window.openModal = (t) => { window.currentType = t; document.getElementById('modalTitle').innerText = t; document.getElementById('requestModal').style.display = 'flex'; }
+        window.openModal = (t) => { window.currentType = t; document.getElementById('modalTitle').innerText = t + " Money"; document.getElementById('requestModal').style.display = 'flex'; }
         window.closeModal = () => document.getElementById('requestModal').style.display = 'none';
         window.submitRequest = async () => {
             const val = parseFloat(document.getElementById('reqAmount').value);
             if(val > 0) {
                 await addDoc(collection(db, "requests"), { userId: auth.currentUser.uid, userName: auth.currentUser.displayName, userEmail: auth.currentUser.email, amount: val, type: window.currentType, timestamp: serverTimestamp() });
-                alert("Request Sent to Admin!"); closeModal();
+                alert("Request Sent!"); closeModal();
             }
         };
 
-        const ctx = document.getElementById('profitChart').getContext('2d');
-        chart = new Chart(ctx, { type: 'line', data: { labels: [], datasets: [{ data: [], borderColor: '#10b981', tension: 0.4 }] }, options: { scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } } } });
-        function updateChart(v) { chart.data.labels.push(""); chart.data.datasets[0].data.push(v); if(chart.data.labels.length > 15) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); } chart.update('none'); }
         document.getElementById('logoutBtn').onclick = () => signOut(auth);
     </script>
 </body>
