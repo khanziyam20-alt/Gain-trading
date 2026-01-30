@@ -1,10 +1,9 @@
-// 🔥 Firebase Imports
+// 🔥 Firebase imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getAuth,
   GoogleAuthProvider,
   signInWithRedirect,
-  getRedirectResult,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -14,13 +13,10 @@ import {
   getDoc,
   setDoc,
   getDocs,
-  updateDoc,
-  collection,
-  addDoc,
-  serverTimestamp
+  collection
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* 🔐 Firebase Config */
+// 🔐 Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
   authDomain: "gain-trading.firebaseapp.com",
@@ -30,110 +26,97 @@ const firebaseConfig = {
   appId: "1:158325829948:web:004921f55b11297c596e39"
 };
 
+// 🔥 Init
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-/* 🔐 LOGIN */
-window.googleLogin = () => signInWithRedirect(auth, provider);
-
-/* 🔁 REDIRECT RESULT */
-getRedirectResult(auth).then(async (res)=>{
-  if(!res) return;
-  const u = res.user;
-  const ref = doc(db,"users",u.uid);
-  const snap = await getDoc(ref);
-
-  if(!snap.exists()){
-    await setDoc(ref,{
-      name:u.displayName,
-      email:u.email,
-      role:"user",
-      balance:1000,       // 🔥 starting demo balance
-      profit:0,
-      createdAt:Date.now()
-    });
-  }
-  location.href="user.html";
-});
-
-/* 👤 USER PAGE */
-onAuthStateChanged(auth, async (u)=>{
-  if(!u) return;
-  if(!location.pathname.includes("user.html")) return;
-
-  const snap = await getDoc(doc(db,"users",u.uid));
-  if(!snap.exists()) return;
-
-  const d=snap.data();
-  uname.innerText=d.name;
-  uemail.innerText=d.email;
-  balance.innerText="₹"+d.balance;
-  profit.innerText="₹"+d.profit;
-});
-
-/* 📈 TRADING LOGIC (FAKE DEMO) */
-window.startTrading = async ()=>{
-  onAuthStateChanged(auth, async (u)=>{
-    if(!u) return;
-
-    const ref=doc(db,"users",u.uid);
-    const snap=await getDoc(ref);
-    if(!snap.exists()) return;
-
-    let bal=snap.data().balance;
-    let p=Math.floor(bal*0.01); // 1% profit
-    let newBal=bal+p;
-
-    await updateDoc(ref,{
-      balance:newBal,
-      profit:(snap.data().profit||0)+p
-    });
-
-    await addDoc(collection(db,"transactions"),{
-      uid:u.uid,
-      amount:p,
-      type:"profit",
-      time:serverTimestamp()
-    });
-
-    alert("Trading profit added");
-    location.reload();
-  });
+/* =========================
+   LOGIN (REDIRECT)
+========================= */
+window.googleLogin = () => {
+  signInWithRedirect(auth, provider);
 };
 
-/* 🔐 ADMIN GUARD */
-window.guardAdmin=()=>{
-  onAuthStateChanged(auth, async(u)=>{
-    if(!u) return location.href="index.html";
-    const s=await getDoc(doc(db,"users",u.uid));
-    if(s.data().role!=="admin"){
+/* =========================
+   AUTH STATE (SINGLE SOURCE)
+========================= */
+onAuthStateChanged(auth, async (user) => {
+  // 🔹 LOGIN PAGE
+  if (location.pathname.includes("index.html") || location.pathname === "/") {
+    if (user) {
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref);
+
+      if (!snap.exists()) {
+        await setDoc(ref, {
+          name: user.displayName,
+          email: user.email,
+          role: "user",
+          balance: 1000,
+          createdAt: Date.now()
+        });
+      }
+
+      location.href = "user.html";
+    }
+  }
+
+  // 🔹 USER PAGE
+  if (location.pathname.includes("user.html")) {
+    if (!user) return location.href = "index.html";
+
+    const snap = await getDoc(doc(db, "users", user.uid));
+    if (!snap.exists()) return;
+
+    uname.innerText = snap.data().name;
+    uemail.innerText = snap.data().email;
+    balance.innerText = "₹" + snap.data().balance;
+  }
+});
+
+/* =========================
+   ADMIN GUARD
+========================= */
+window.guardAdmin = () => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return location.href = "index.html";
+
+    const snap = await getDoc(doc(db, "users", user.uid));
+    if (snap.data().role !== "admin") {
       alert("Admin only");
-      location.href="user.html";
+      location.href = "user.html";
     }
   });
 };
 
-/* 👥 ADMIN USERS */
-window.loadUsers=async()=>{
-  const box=document.getElementById("users");
-  box.innerHTML="";
-  const q=await getDocs(collection(db,"users"));
-  q.forEach(d=>{
-    const u=d.data();
-    box.innerHTML+=`
-      <div style="background:#0f172a;padding:12px;margin:10px;border-radius:10px">
+/* =========================
+   ADMIN LOAD USERS
+========================= */
+window.loadUsers = async () => {
+  const box = document.getElementById("users");
+  if (!box) return;
+
+  box.innerHTML = "";
+  const q = await getDocs(collection(db, "users"));
+
+  q.forEach(d => {
+    const u = d.data();
+    box.innerHTML += `
+      <div style="background:#0f172a;padding:12px;margin:8px;border-radius:10px">
         <b>${u.name}</b><br>
         ${u.email}<br>
-        Balance: ₹${u.balance}<br>
-        Profit: ₹${u.profit||0}
-      </div>`;
+        Balance: ₹${u.balance}
+      </div>
+    `;
   });
 };
 
-/* 🚪 LOGOUT */
-window.logout=async()=>{
+/* =========================
+   LOGOUT
+========================= */
+window.logout = async () => {
   await signOut(auth);
-  location.href="index.html";
+  location.href = "index.html";
 };
