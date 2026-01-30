@@ -3,72 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Money Control - Admin Dashboard</title>
+    <title>Admin Command Center - Money Control</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #38bdf8; --accent: #10b981; --bg: #020617; --card: #0f172a; --danger: #ef4444; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; }
-        
-        .header { text-align: center; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 25px; }
-        h1 { font-size: 1.5rem; color: var(--primary); letter-spacing: 1px; margin: 0; }
-
-        .section-header { font-size: 0.9rem; color: #94a3b8; margin: 20px 0 10px; font-weight: 600; text-transform: uppercase; }
-
-        /* Table Design */
-        .card { background: var(--card); border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; margin-bottom: 25px; }
-        table { width: 100%; border-collapse: collapse; min-width: 500px; }
-        th { background: rgba(255,255,255,0.02); text-align: left; padding: 12px 15px; font-size: 0.75rem; color: #64748b; }
-        td { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.85rem; }
-
-        /* Buttons & Inputs */
-        input { background: #020617; border: 1px solid #334155; color: white; padding: 6px 10px; border-radius: 8px; width: 70px; }
-        .btn { padding: 8px 12px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 0.75rem; }
-        .btn-update { background: var(--primary); color: #020617; }
-        .btn-approve { background: var(--accent); color: white; }
+        .header { text-align: center; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        h1 { font-size: 1.4rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+        .section-header { font-size: 0.85rem; color: #94a3b8; margin: 25px 0 10px; font-weight: 600; text-transform: uppercase; border-left: 3px solid var(--primary); padding-left: 10px; }
+        .card { background: var(--card); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; min-width: 450px; }
+        th { background: rgba(255,255,255,0.02); text-align: left; padding: 12px; font-size: 0.7rem; color: #64748b; }
+        td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.8rem; }
+        input { background: #020617; border: 1px solid #334155; color: white; padding: 5px; border-radius: 6px; width: 60px; }
+        .btn { padding: 6px 10px; border-radius: 6px; border: none; font-weight: 700; cursor: pointer; font-size: 0.7rem; }
+        .btn-save { background: var(--primary); color: #020617; }
+        .btn-action { background: var(--accent); color: white; margin-right: 5px; }
         .btn-reject { background: var(--danger); color: white; }
-
-        .user-info { display: flex; flex-direction: column; }
-        .user-email { font-size: 0.7rem; color: #475569; }
-        .empty { padding: 30px; text-align: center; color: #475569; font-style: italic; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Admin Command Center</h1>
-    </div>
+    <div class="header"><h1>Admin Control</h1></div>
 
     <div class="section-header">Pending Requests (₹)</div>
     <div class="card">
         <table>
-            <thead>
-                <tr>
-                    <th>User</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="requestList">
-                <tr><td colspan="4" class="empty">Loading requests...</td></tr>
-            </tbody>
+            <thead><tr><th>User</th><th>Type</th><th>Amount</th><th>Action</th></tr></thead>
+            <tbody id="requestList"><tr><td colspan="4" style="text-align:center; padding:20px;">Connecting to Database...</td></tr></tbody>
         </table>
     </div>
 
-    <div class="section-header">Manage All Users</div>
+    <div class="section-header">User Management</div>
     <div class="card">
         <table>
-            <thead>
-                <tr>
-                    <th>User Details</th>
-                    <th>Wallet Balance</th>
-                    <th>Profit Rate (%/m)</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="userList">
-                <tr><td colspan="4" class="empty">Loading users...</td></tr>
-            </tbody>
+            <thead><tr><th>Name / Email</th><th>Wallet (₹)</th><th>Rate (%/m)</th><th>Action</th></tr></thead>
+            <tbody id="userList"><tr><td colspan="4" style="text-align:center; padding:20px;">Loading Active Users...</td></tr></tbody>
         </table>
     </div>
 
@@ -87,68 +57,64 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(auth);
+        const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Security Check
         onAuthStateChanged(auth, (user) => {
             if (!user || user.email !== "khanziyam20@gmail.com") {
-                window.location.href = "index.html";
+                window.location.href = "index.html"; 
+            } else {
+                startSync();
             }
         });
 
-        // 1. Fetch Users
-        onSnapshot(collection(db, "users"), (snap) => {
-            const list = document.getElementById('userList');
-            list.innerHTML = "";
-            snap.forEach(d => {
-                const u = d.data();
-                list.innerHTML += `<tr>
-                    <td>
-                        <div class="user-info">
-                            <span>${u.name || 'User'}</span>
-                            <span class="user-email">${u.email}</span>
-                        </div>
-                    </td>
-                    <td>₹${(u.walletBalance || 0).toFixed(2)}</td>
-                    <td><input type="number" step="0.001" id="rate-${d.id}" value="${u.profitRate || 0}"></td>
-                    <td><button class="btn btn-update" onclick="updateRate('${d.id}')">Save</button></td>
-                </tr>`;
-            });
-        });
+        function startSync() {
+            // 1. Fetch Users
+            onSnapshot(collection(db, "users"), (snap) => {
+                const list = document.getElementById('userList');
+                list.innerHTML = "";
+                snap.forEach(d => {
+                    const u = d.data();
+                    list.innerHTML += `<tr>
+                        <td>${u.name || 'User'}<br><small style="color:#475569">${u.email}</small></td>
+                        <td>₹${(u.walletBalance || 0).toFixed(2)}</td>
+                        <td><input type="number" step="0.001" id="rate-${d.id}" value="${u.profitRate || 0}"></td>
+                        <td><button class="btn btn-save" onclick="updateRate('${d.id}')">Save</button></td>
+                    </tr>`;
+                });
+            }, (error) => { console.error("User Sync Error:", error); });
 
-        // 2. Fetch Pending Requests
-        onSnapshot(query(collection(db, "requests"), where("status", "==", "pending")), (snap) => {
-            const list = document.getElementById('requestList');
-            list.innerHTML = snap.empty ? '<tr><td colspan="4" class="empty">No pending requests</td></tr>' : '';
-            snap.forEach(d => {
-                const req = d.data();
-                list.innerHTML += `<tr>
-                    <td>${req.userEmail || 'Unknown'}</td>
-                    <td style="color:${req.type==='Deposit'?'#10b981':'#f59e0b'}">${req.type}</td>
-                    <td>₹${req.amount}</td>
-                    <td>
-                        <button class="btn btn-approve" onclick="handleReq('${d.id}', '${req.userId}', ${req.amount}, '${req.type}', 'approved')">✔</button>
-                        <button class="btn btn-reject" onclick="handleReq('${d.id}', '${req.userId}', ${req.amount}, '${req.type}', 'rejected')">✖</button>
-                    </td>
-                </tr>`;
+            // 2. Fetch Requests
+            onSnapshot(query(collection(db, "requests"), where("status", "==", "pending")), (snap) => {
+                const list = document.getElementById('requestList');
+                list.innerHTML = snap.empty ? '<tr><td colspan="4" style="text-align:center; padding:15px; color:#475569;">No pending requests</td></tr>' : '';
+                snap.forEach(d => {
+                    const r = d.data();
+                    list.innerHTML += `<tr>
+                        <td><small>${r.userEmail || 'Unknown'}</small></td>
+                        <td style="color:${r.type==='Deposit'?'#10b981':'#f59e0b'}">${r.type}</td>
+                        <td>₹${r.amount}</td>
+                        <td>
+                            <button class="btn btn-action" onclick="handleReq('${d.id}', '${r.userId}', ${r.amount}, '${r.type}', 'approved')">✔</button>
+                            <button class="btn btn-reject" onclick="handleReq('${d.id}', '${r.userId}', ${r.amount}, '${r.type}', 'rejected')">✖</button>
+                        </td>
+                    </tr>`;
+                });
             });
-        });
+        }
 
-        // Global Actions
-        window.updateRate = async (uid) => {
-            const val = parseFloat(document.getElementById(`rate-${uid}`).value);
-            await updateDoc(doc(db, "users", uid), { profitRate: val });
-            alert("Rate Updated Successfully!");
+        window.updateRate = async (id) => {
+            const val = parseFloat(document.getElementById(`rate-${id}`).value);
+            await updateDoc(doc(db, "users", id), { profitRate: val });
+            alert("Updated!");
         };
 
-        window.handleReq = async (reqId, userId, amt, type, status) => {
+        window.handleReq = async (rid, uid, amt, type, status) => {
             if (status === 'approved') {
-                const userRef = doc(db, "users", userId);
-                await updateDoc(userRef, { walletBalance: increment(type === 'Deposit' ? amt : -amt) });
+                await updateDoc(doc(db, "users", uid), { walletBalance: increment(type==='Deposit'?amt:-amt) });
             }
-            await updateDoc(doc(db, "requests", reqId), { status: status });
-            alert("Request Status: " + status);
+            await updateDoc(doc(db, "requests", rid), { status: status });
+            alert("Request " + status);
         };
     </script>
 </body>
