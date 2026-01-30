@@ -3,40 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Command Center - Money Control</title>
+    <title>Money Control - Admin Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #38bdf8; --accent: #10b981; --bg: #020617; --card: #0f172a; --danger: #ef4444; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: white; margin: 0; padding: 20px; }
-        h1 { font-size: 1.8rem; font-weight: 800; color: var(--primary); margin-bottom: 30px; text-align: center; text-transform: uppercase; letter-spacing: 2px; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; }
         
-        .section-title { font-size: 1.1rem; font-weight: 600; color: #94a3b8; margin: 25px 0 15px; display: flex; align-items: center; gap: 10px; }
-        .section-title::after { content: ""; height: 1px; flex: 1; background: rgba(255,255,255,0.1); }
+        .header { text-align: center; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 25px; }
+        h1 { font-size: 1.5rem; color: var(--primary); letter-spacing: 1px; margin: 0; }
 
-        /* Tables & Lists */
-        .admin-card { background: var(--card); border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); overflow: hidden; margin-bottom: 30px; }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th { background: rgba(255,255,255,0.03); padding: 15px; font-size: 0.8rem; color: #64748b; text-transform: uppercase; }
-        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }
-        
-        /* Buttons */
-        .btn { padding: 8px 16px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; transition: 0.3s; font-size: 0.8rem; }
-        .btn-approve { background: var(--accent); color: white; margin-right: 5px; }
+        .section-header { font-size: 0.9rem; color: #94a3b8; margin: 20px 0 10px; font-weight: 600; text-transform: uppercase; }
+
+        /* Table Design */
+        .card { background: var(--card); border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; margin-bottom: 25px; }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        th { background: rgba(255,255,255,0.02); text-align: left; padding: 12px 15px; font-size: 0.75rem; color: #64748b; }
+        td { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.85rem; }
+
+        /* Buttons & Inputs */
+        input { background: #020617; border: 1px solid #334155; color: white; padding: 6px 10px; border-radius: 8px; width: 70px; }
+        .btn { padding: 8px 12px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 0.75rem; }
+        .btn-update { background: var(--primary); color: #020617; }
+        .btn-approve { background: var(--accent); color: white; }
         .btn-reject { background: var(--danger); color: white; }
-        .btn-update { background: var(--primary); color: #020617; width: 100%; padding: 10px; }
-        
-        input { background: #020617; border: 1px solid #334155; color: white; padding: 8px; border-radius: 8px; width: 80px; font-weight: bold; }
-        .user-row:hover { background: rgba(255,255,255,0.02); }
-        .empty-msg { padding: 40px; text-align: center; color: #475569; font-style: italic; }
+
+        .user-info { display: flex; flex-direction: column; }
+        .user-email { font-size: 0.7rem; color: #475569; }
+        .empty { padding: 30px; text-align: center; color: #475569; font-style: italic; }
     </style>
 </head>
 <body>
 
-    <h1>Admin Control Center</h1>
+    <div class="header">
+        <h1>Admin Command Center</h1>
+    </div>
 
-    <div class="section-title">Pending Requests (Deposit/Withdraw)</div>
-    <div class="admin-card">
-        <table id="requestsTable">
+    <div class="section-header">Pending Requests (₹)</div>
+    <div class="card">
+        <table>
             <thead>
                 <tr>
                     <th>User</th>
@@ -46,30 +50,32 @@
                 </tr>
             </thead>
             <tbody id="requestList">
-                </tbody>
+                <tr><td colspan="4" class="empty">Loading requests...</td></tr>
+            </tbody>
         </table>
     </div>
 
-    <div class="section-title">Manage Users & Profit Rates</div>
-    <div class="admin-card">
+    <div class="section-header">Manage All Users</div>
+    <div class="card">
         <table>
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Wallet (₹)</th>
-                    <th>Profit (%/min)</th>
+                    <th>User Details</th>
+                    <th>Wallet Balance</th>
+                    <th>Profit Rate (%/m)</th>
                     <th>Action</th>
                 </tr>
             </thead>
             <tbody id="userList">
-                </tbody>
+                <tr><td colspan="4" class="empty">Loading users...</td></tr>
+            </tbody>
         </table>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc, query, where, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, query, where, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
@@ -81,69 +87,69 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
+        const auth = getAuth(auth);
         const db = getFirestore(app);
 
         // Security Check
         onAuthStateChanged(auth, (user) => {
             if (!user || user.email !== "khanziyam20@gmail.com") {
-                alert("Unauthorized Access!");
                 window.location.href = "index.html";
             }
         });
 
-        // 1. Load Requests
-        onSnapshot(query(collection(db, "requests"), where("status", "==", "pending")), (snap) => {
-            const list = document.getElementById('requestList');
-            list.innerHTML = snap.empty ? '<tr><td colspan="4" class="empty-msg">No pending requests</td></tr>' : '';
-            snap.forEach(d => {
-                const req = d.data();
-                const row = `<tr>
-                    <td>${req.userName || 'User'}</td>
-                    <td style="color:${req.type==='Deposit'?'#10b981':'#f59e0b'}">${req.type}</td>
-                    <td>₹${req.amount}</td>
-                    <td>
-                        <button class="btn btn-approve" onclick="handleReq('${d.id}', '${req.userId}', ${req.amount}, '${req.type}', 'approved')">Approve</button>
-                        <button class="btn btn-reject" onclick="handleReq('${d.id}', '${req.userId}', ${req.amount}, '${req.type}', 'rejected')">X</button>
-                    </td>
-                </tr>`;
-                list.innerHTML += row;
-            });
-        });
-
-        // 2. Load Users
+        // 1. Fetch Users
         onSnapshot(collection(db, "users"), (snap) => {
             const list = document.getElementById('userList');
             list.innerHTML = "";
             snap.forEach(d => {
                 const u = d.data();
-                const row = `<tr class="user-row">
-                    <td>${u.name}<br><small style="color:#475569">${u.email}</small></td>
-                    <td>₹${u.walletBalance.toFixed(2)}</td>
-                    <td><input type="number" step="0.01" id="rate-${d.id}" value="${u.profitRate}"></td>
-                    <td><button class="btn btn-update" onclick="updateUser('${d.id}')">Update</button></td>
+                list.innerHTML += `<tr>
+                    <td>
+                        <div class="user-info">
+                            <span>${u.name || 'User'}</span>
+                            <span class="user-email">${u.email}</span>
+                        </div>
+                    </td>
+                    <td>₹${(u.walletBalance || 0).toFixed(2)}</td>
+                    <td><input type="number" step="0.001" id="rate-${d.id}" value="${u.profitRate || 0}"></td>
+                    <td><button class="btn btn-update" onclick="updateRate('${d.id}')">Save</button></td>
                 </tr>`;
-                list.innerHTML += row;
             });
         });
 
-        // Actions Logic
+        // 2. Fetch Pending Requests
+        onSnapshot(query(collection(db, "requests"), where("status", "==", "pending")), (snap) => {
+            const list = document.getElementById('requestList');
+            list.innerHTML = snap.empty ? '<tr><td colspan="4" class="empty">No pending requests</td></tr>' : '';
+            snap.forEach(d => {
+                const req = d.data();
+                list.innerHTML += `<tr>
+                    <td>${req.userEmail || 'Unknown'}</td>
+                    <td style="color:${req.type==='Deposit'?'#10b981':'#f59e0b'}">${req.type}</td>
+                    <td>₹${req.amount}</td>
+                    <td>
+                        <button class="btn btn-approve" onclick="handleReq('${d.id}', '${req.userId}', ${req.amount}, '${req.type}', 'approved')">✔</button>
+                        <button class="btn btn-reject" onclick="handleReq('${d.id}', '${req.userId}', ${req.amount}, '${req.type}', 'rejected')">✖</button>
+                    </td>
+                </tr>`;
+            });
+        });
+
+        // Global Actions
+        window.updateRate = async (uid) => {
+            const val = parseFloat(document.getElementById(`rate-${uid}`).value);
+            await updateDoc(doc(db, "users", uid), { profitRate: val });
+            alert("Rate Updated Successfully!");
+        };
+
         window.handleReq = async (reqId, userId, amt, type, status) => {
             if (status === 'approved') {
                 const userRef = doc(db, "users", userId);
-                const change = type === 'Deposit' ? amt : -amt;
-                await updateDoc(userRef, { walletBalance: increment(change) });
+                await updateDoc(userRef, { walletBalance: increment(type === 'Deposit' ? amt : -amt) });
             }
             await updateDoc(doc(db, "requests", reqId), { status: status });
-            alert("Request " + status);
+            alert("Request Status: " + status);
         };
-
-        window.updateUser = async (uid) => {
-            const newRate = parseFloat(document.getElementById(`rate-${uid}`).value);
-            await updateDoc(doc(db, "users", uid), { profitRate: newRate });
-            alert("Rate Updated!");
-        };
-
     </script>
 </body>
 </html>
