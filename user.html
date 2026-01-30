@@ -1,12 +1,26 @@
 <!DOCTYPE html>
 <html>
-<head><title>User</title></head>
+<head>
+<meta charset="UTF-8">
+<title>User Dashboard</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{background:#020617;color:white;font-family:Arial;padding:20px}
+.card{background:#0f172a;padding:24px;border-radius:18px}
+button{margin-top:12px;padding:10px 14px;border:none;border-radius:10px;
+background:#ef4444;color:white;font-weight:bold}
+</style>
+</head>
 <body>
+
+<div class="card">
   <h2>User Dashboard</h2>
-  <p id="uname"></p>
-  <p id="uemail"></p>
-  <p id="balance"></p>
+  <p>Name: <span id="uname"></span></p>
+  <p>Email: <span id="uemail"></span></p>
+  <p>Balance: <span id="balance"></span></p>
   <button onclick="logout()">Logout</button>
-  <script type="module" src="firebase.js"></script>
+</div>
+
+<script type="module" src="firebase.js"></script>
 </body>
 </html>
