@@ -3,7 +3,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
-  onAuthStateChanged
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
   getFirestore,
@@ -14,11 +15,14 @@ import {
   collection
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* 🔥 Firebase Config (तुम्हारा वाला) */
+/* 🔥 REAL Firebase Config */
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
   authDomain: "gain-trading.firebaseapp.com",
   projectId: "gain-trading",
+  storageBucket: "gain-trading.appspot.com",
+  messagingSenderId: "158325829948",
+  appId: "1:158325829948:web:004921f55b11297c596e39"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -28,22 +32,26 @@ const provider = new GoogleAuthProvider();
 
 /* ✅ GOOGLE LOGIN */
 window.googleLogin = async () => {
-  const res = await signInWithPopup(auth, provider);
-  const u = res.user;
+  try {
+    const res = await signInWithPopup(auth, provider);
+    const u = res.user;
 
-  const ref = doc(db, "users", u.uid);
-  const snap = await getDoc(ref);
+    const ref = doc(db, "users", u.uid);
+    const snap = await getDoc(ref);
 
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      name: u.displayName,
-      email: u.email,
-      role: "user",
-      balance: 0,
-      createdAt: Date.now()
-    });
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        name: u.displayName,
+        email: u.email,
+        role: "user",
+        balance: 0,
+        createdAt: Date.now()
+      });
+    }
+    location.href = "user.html";
+  } catch (err) {
+    alert(err.message);
   }
-  location.href = "user.html";
 };
 
 /* 👤 USER DASHBOARD */
@@ -55,16 +63,22 @@ onAuthStateChanged(auth, async (user) => {
 
   const d = snap.data();
   if (document.getElementById("uname")) {
-    uname.innerText = d.name;
-    uemail.innerText = d.email;
-    balance.innerText = d.balance;
+    document.getElementById("uname").innerText = d.name;
+    document.getElementById("uemail").innerText = d.email;
+    document.getElementById("balance").innerText = "₹" + d.balance;
   }
 });
+
+/* 🚪 LOGOUT */
+window.logout = async () => {
+  await signOut(auth);
+  location.href = "index.html";
+};
 
 /* 🔐 ADMIN GUARD */
 window.guardAdmin = () => {
   onAuthStateChanged(auth, async (u) => {
-    if (!u) location.href = "index.html";
+    if (!u) return location.href = "index.html";
     const s = await getDoc(doc(db, "users", u.uid));
     if (s.data().role !== "admin") {
       alert("Admin only");
@@ -73,15 +87,13 @@ window.guardAdmin = () => {
   });
 };
 
-/* 👥 ADMIN: LOAD USERS */
+/* 👥 ADMIN LOAD USERS */
 window.loadUsers = async () => {
   const q = await getDocs(collection(db, "users"));
   const list = document.getElementById("users");
   list.innerHTML = "";
   q.forEach(d => {
     const u = d.data();
-    list.innerHTML += `
-      <li>${u.name} | ${u.email} | ₹${u.balance}</li>
-    `;
+    list.innerHTML += `<li>${u.name} | ${u.email} | ₹${u.balance}</li>`;
   });
 };
