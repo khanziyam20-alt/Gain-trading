@@ -3,56 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Money Control - Dashboard</title>
+    <title>Money Control - Pro Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #2563eb; --accent: #10b981; --bg: #020617; --card: #0f172a; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; }
-        .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .logout-btn { background: #ef4444; border: none; padding: 8px 15px; border-radius: 8px; color: white; font-weight: bold; }
+        
+        /* Stats Cards */
         .stat-card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
         .label { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; }
-        .value { font-size: 2rem; font-weight: 800; color: var(--accent); margin: 5px 0; }
-        .invest-value { color: #38bdf8; }
-        .action-btn { width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; }
-        .btn-row { display: flex; gap: 10px; }
+        .value { font-size: 2.2rem; font-weight: 800; color: var(--accent); margin: 5px 0; }
+        
+        /* Professional Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--card); padding: 30px; border-radius: 24px; width: 90%; max-width: 380px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .modal-h2 { margin-top: 0; font-size: 1.5rem; color: white; }
+        
+        /* Buttons & Inputs */
+        .action-btn { width: 100%; padding: 14px; border: none; border-radius: 14px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn-deposit { background: var(--accent); color: white; }
+        .btn-withdraw { background: #f59e0b; color: white; }
+        .btn-close { background: transparent; color: #94a3b8; font-size: 0.9rem; margin-top: 15px; }
+        
+        input { width: 100%; padding: 14px; margin: 15px 0; border-radius: 12px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; font-size: 1rem; }
+        
+        /* History Section */
+        .history-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
+        .status-pending { color: #f59e0b; }
+        .status-approved { color: var(--accent); }
     </style>
 </head>
 <body>
 
-    <div class="nav">
-        <h3 id="userName">Loading...</h3>
-        <button class="logout-btn" id="logoutBtn">Logout</button>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 id="userName" style="margin:0">Dashboard</h2>
+        <button onclick="logout()" style="background:#ef4444; border:none; padding:8px 15px; border-radius:8px; color:white; font-weight:bold;">Logout</button>
     </div>
 
     <div class="stat-card">
         <div class="label">Main Wallet Balance</div>
         <div class="value" id="mainBalance">₹0.00</div>
-        <div class="btn-row">
-            <button class="action-btn" style="background:var(--accent); color:white;" id="addMoneyBtn">Add Money</button>
-            <button class="action-btn" style="background:#f59e0b; color:white;" id="withdrawBtn">Withdraw</button>
+        <div style="display: flex; gap: 10px;">
+            <button class="action-btn btn-deposit" onclick="openModal('Deposit')">Add Money</button>
+            <button class="action-btn btn-withdraw" onclick="openModal('Withdraw')">Withdraw</button>
         </div>
     </div>
 
     <div class="stat-card">
-        <div class="label">Live Trading Balance</div>
-        <div class="value invest-value" id="liveInvest">₹0.00</div>
-        <div id="rateText" style="font-size: 0.8rem; color:#38bdf8;">Profit Rate: 0%</div>
+        <div class="label">Live Trading Profit</div>
+        <div class="value" style="color:#38bdf8" id="liveInvest">₹0.00</div>
+        <div id="rateText" style="font-size: 0.75rem; color:#38bdf8; margin-bottom: 10px;">Profit Rate: 0% per min</div>
         <button class="action-btn" style="background:#f43f5e; color:white;" id="cashOutBtn">Cash Out to Wallet</button>
-        <button class="action-btn" style="background:#334155; color:white;" onclick="window.location.href='history.html'">Transaction History</button>
     </div>
 
     <div class="stat-card">
-        <div class="label">New Investment</div>
-        <input type="number" id="investAmount" placeholder="Enter Amount (₹)">
-        <button class="action-btn" style="background:var(--primary); color:white;" id="startInvestBtn">Start Trading</button>
+        <div class="label" style="margin-bottom: 15px;">Recent Transactions</div>
+        <div id="historyList">
+            <div style="text-align: center; color: #475569; padding: 10px;">Loading History...</div>
+        </div>
+        <button class="action-btn" style="background:#334155; color:white;" onclick="window.location.href='history.html'">View Full History</button>
+    </div>
+
+    <div id="reqModal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-h2" id="modalTitle">Request</h2>
+            <p id="modalSub" style="color:#94a3b8; font-size: 0.9rem;">Enter the amount to proceed</p>
+            <input type="number" id="reqAmount" placeholder="Amount (₹)">
+            <button class="action-btn btn-deposit" id="modalSubmitBtn" onclick="submitRequest()">Submit Request</button>
+            <button class="action-btn btn-close" onclick="closeModal()">Cancel</button>
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, increment, collection, addDoc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, increment, collection, addDoc, serverTimestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
@@ -66,83 +91,88 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        let userRef, currentUID, walletBal, investBal, pRate;
+        let userRef, currentType, currentBal, invBal, rate;
 
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, (user) => {
             if (user) {
-                currentUID = user.uid;
                 userRef = doc(db, "users", user.uid);
-                document.getElementById('userName').innerText = user.displayName;
-
-                // Offline Profit calculation
-                const snap = await getDoc(userRef);
-                if(snap.exists()) {
-                    const d = snap.data();
-                    const last = d.lastUpdate?.toDate().getTime() || Date.now();
-                    const diff = Math.floor((Date.now() - last) / 60000);
-                    if(diff > 0 && d.investBalance > 0) {
-                        const profit = (d.investBalance * (d.profitRate/100)) * diff;
-                        await updateDoc(userRef, { investBalance: increment(profit), lastUpdate: serverTimestamp() });
-                    }
-                }
-
+                document.getElementById('userName').innerText = "Hello, " + user.displayName;
+                
                 onSnapshot(userRef, (ds) => {
-                    const data = ds.data();
-                    walletBal = data.walletBalance;
-                    investBal = data.investBalance;
-                    pRate = data.profitRate;
-                    document.getElementById('mainBalance').innerText = `₹${walletBal.toFixed(2)}`;
-                    document.getElementById('liveInvest').innerText = `₹${investBal.toFixed(2)}`;
-                    document.getElementById('rateText').innerText = `Profit Rate: ${pRate}% per minute`;
+                    const d = ds.data();
+                    currentBal = d.walletBalance;
+                    invBal = d.investBalance;
+                    rate = d.profitRate;
+                    document.getElementById('mainBalance').innerText = `₹${currentBal.toFixed(2)}`;
+                    document.getElementById('liveInvest').innerText = `₹${invBal.toFixed(2)}`;
+                    document.getElementById('rateText').innerText = `Profit Rate: ${rate}% per minute`;
                 });
 
-                // 10 Paise Visual Increment
-                setInterval(() => {
-                    if(investBal > 0) {
-                        investBal += 0.10;
-                        document.getElementById('liveInvest').innerText = `₹${investBal.toFixed(2)}`;
+                // FIXED HISTORY LOGIC
+                const q = query(collection(db, "requests"), where("userId", "==", user.uid));
+                onSnapshot(q, (snap) => {
+                    const list = document.getElementById('historyList');
+                    list.innerHTML = snap.empty ? '<div style="text-align:center; color:#475569;">No transactions yet</div>' : '';
+                    let docs = [];
+                    snap.forEach(d => docs.push(d.data()));
+                    docs.sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+                    
+                    docs.slice(0, 3).forEach(r => {
+                        list.innerHTML += `<div class="history-item">
+                            <span>${r.type}</span>
+                            <span style="font-weight:bold">₹${r.amount}</span>
+                            <span class="status-${r.status}">${r.status}</span>
+                        </div>`;
+                    });
+                });
+
+                // 10 Paise Profit Logic
+                setInterval(async () => {
+                    if(invBal > 0 && rate > 0) {
+                        let profit = (invBal * (rate/100)) * (5/60); // 5 sec calculation
+                        if(profit >= 0.10) {
+                            await updateDoc(userRef, { investBalance: increment(profit), lastUpdate: serverTimestamp() });
+                        }
                     }
-                }, 3000);
+                }, 5000);
 
             } else { window.location.href = "index.html"; }
         });
 
-        // FIXED: Add & Withdraw Functions
-        const sendRequest = async (type) => {
-            const amt = prompt(`Enter ${type} amount:`);
-            if(amt && !isNaN(amt) && amt > 0) {
-                if(type === 'Withdraw' && amt > walletBal) return alert("Inadequate Balance!");
+        // Professional Modal Logic
+        window.openModal = (type) => {
+            currentType = type;
+            document.getElementById('modalTitle').innerText = type + " Funds";
+            document.getElementById('modalSubmitBtn').style.background = type === 'Deposit' ? '#10b981' : '#f59e0b';
+            document.getElementById('reqModal').style.display = 'flex';
+        }
+        window.closeModal = () => { document.getElementById('reqModal').style.display = 'none'; }
+
+        window.submitRequest = async () => {
+            const amt = parseFloat(document.getElementById('reqAmount').value);
+            if(amt > 0) {
+                if(currentType === 'Withdraw' && amt > currentBal) return alert("Insufficient Balance");
                 await addDoc(collection(db, "requests"), {
-                    userId: currentUID,
-                    userName: auth.currentUser.displayName,
-                    amount: parseFloat(amt),
-                    type: type,
-                    status: "pending",
+                    userId: auth.currentUser.uid,
+                    userEmail: auth.currentUser.email,
+                    amount: amt,
+                    type: currentType,
+                    status: 'pending',
                     timestamp: serverTimestamp()
                 });
-                alert(`${type} request sent to Admin!`);
+                alert("Request Submitted Successfully!");
+                closeModal();
             }
-        };
-
-        document.getElementById('addMoneyBtn').onclick = () => sendRequest('Deposit');
-        document.getElementById('withdrawBtn').onclick = () => sendRequest('Withdraw');
-
-        document.getElementById('startInvestBtn').onclick = async () => {
-            const amt = parseFloat(document.getElementById('investAmount').value);
-            if(amt > 0 && amt <= walletBal) {
-                await updateDoc(userRef, { walletBalance: increment(-amt), investBalance: increment(amt), lastUpdate: serverTimestamp() });
-                document.getElementById('investAmount').value = '';
-            } else { alert("Insufficient Wallet Balance!"); }
         };
 
         document.getElementById('cashOutBtn').onclick = async () => {
-            if(investBal > 0) {
-                await updateDoc(userRef, { walletBalance: increment(investBal), investBalance: 0, lastUpdate: serverTimestamp() });
-                alert("Profit cashed out!");
+            if(invBal > 0) {
+                await updateDoc(userRef, { walletBalance: increment(invBal), investBalance: 0 });
+                alert("Paisa Wallet mein bhej diya gaya!");
             }
         };
 
-        document.getElementById('logoutBtn').onclick = () => signOut(auth);
+        window.logout = () => signOut(auth);
     </script>
 </body>
 </html>
