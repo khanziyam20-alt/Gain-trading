@@ -3,134 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Command Center</title>
+    <title>User Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #38bdf8; --bg: #020617; --card: #0f172a; --accent: #10b981; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: white; padding: 20px; margin: 0; }
-        .stat-card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px; }
-        h2 { color: var(--primary); font-size: 1.2rem; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
-        
-        /* Plan Editor Grid */
-        .plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        input { background: #020617; border: 1px solid #1e293b; color: white; padding: 12px; border-radius: 10px; width: 100%; box-sizing: border-box; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { text-align: left; color: #64748b; font-size: 0.8rem; padding: 10px; text-transform: uppercase; }
-        td { padding: 15px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }
-        
-        .btn { padding: 8px 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-approve { background: var(--accent); color: white; }
-        .btn-update { background: var(--primary); color: #020617; width: 100%; margin-top: 15px; }
+        :root { --primary: #2563eb; --accent: #10b981; --bg: #020617; --card: #0f172a; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; }
+        .stat-card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
+        .label { color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
+        .value { font-size: 2rem; font-weight: 800; color: var(--accent); margin: 5px 0; }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; }
+        .modal-box { background: var(--card); padding: 30px; border-radius: 25px; width: 85%; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 10px; border: 1px solid #334155; background: #020617; color: white; }
     </style>
 </head>
 <body>
-
-    <h2>Admin Command Center</h2>
+    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+        <h3 id="userName">Loading...</h3>
+        <button onclick="logout()" style="background:#ef4444; color:white; border:none; border-radius:8px; padding:5px 15px;">Logout</button>
+    </div>
 
     <div class="stat-card">
-        <h2>Update Money Plan Chart</h2>
-        <div class="plan-grid">
-            <div><label style="font-size: 0.7rem;">Invest (₹)</label><input type="number" id="planInv"></div>
-            <div><label style="font-size: 0.7rem;">Profit (₹)</label><input type="number" id="planProf"></div>
-            <div><label style="font-size: 0.7rem;">Percent (%)</label><input type="number" id="planPerc"></div>
-            <div><label style="font-size: 0.7rem;">Days</label><input type="number" id="planDays"></div>
+        <div class="label">Main Balance</div>
+        <div class="value" id="mainBal">₹0.00</div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn" style="background:var(--accent); color:white" onclick="openMod('Deposit')">Add Money</button>
+            <button class="btn" style="background:#f59e0b; color:white" onclick="openMod('Withdraw')">Withdraw</button>
         </div>
-        <button class="btn btn-update" onclick="updateGlobalPlan()">Save Plan for All Users</button>
     </div>
 
     <div class="stat-card">
-        <h2>Pending Requests</h2>
-        <div id="requestList">Loading...</div>
+        <div class="label">Live Profit</div>
+        <div class="value" style="color:#38bdf8" id="liveInv">₹0.00</div>
+        <button class="btn" style="background:var(--primary); color:white" id="cashout">Cash Out</button>
     </div>
 
     <div class="stat-card">
-        <h2>All Users</h2>
-        <div id="userList">Loading...</div>
+        <button class="btn" style="background:#1e293b; color:white" onclick="openPlan()">View Money Plans</button>
     </div>
+
+    <div id="pop" class="modal"><div class="modal-box"><h2 id="pTitle"></h2><input type="number" id="pAmt"><button class="btn" style="background:var(--primary); color:white" onclick="submitReq()">Submit</button><button class="btn" style="background:none; color:gray" onclick="closeMod()">Cancel</button></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, increment, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, increment, addDoc, collection, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
-            authDomain: "gain-trading.firebaseapp.com",
-            projectId: "gain-trading",
-            storageBucket: "gain-trading.firebasestorage.app",
-            messagingSenderId: "158325829948",
-            appId: "1:158325829948:web:004921f55b11297c596e39"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs", authDomain: "gain-trading.firebaseapp.com", projectId: "gain-trading", storageBucket: "gain-trading.firebasestorage.app", messagingSenderId: "158325829948", appId: "1:158325829948:web:004921f55b11297c596e39" };
+        const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app);
+        let uRef, uData, curType;
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                uRef = doc(db, "users", user.uid);
+                document.getElementById('userName').innerText = user.displayName;
+                onSnapshot(uRef, (s) => {
+                    uData = s.data();
+                    document.getElementById('mainBal').innerText = `₹${uData.walletBalance.toFixed(2)}`;
+                    document.getElementById('liveInv').innerText = `₹${uData.investBalance.toFixed(2)}`;
+                });
+            } else { window.location.href = "index.html"; }
+        });
 
-        // Fetch Current Plan Data
-        const planRef = doc(db, "plans", "current_plan");
-        onSnapshot(planRef, (ds) => {
-            if(ds.exists()) {
-                const d = ds.data();
-                document.getElementById('planInv').value = d.invest;
-                document.getElementById('planProf').value = d.profit;
-                document.getElementById('planPerc').value = d.percent;
-                document.getElementById('planDays').value = d.days;
+        window.openMod = (t) => { curType = t; document.getElementById('pTitle').innerText = t; document.getElementById('pop').style.display='flex'; };
+        window.closeMod = () => { document.getElementById('pop').style.display='none'; };
+        window.submitReq = async () => {
+            const a = parseFloat(document.getElementById('pAmt').value);
+            if(a > 0) {
+                await addDoc(collection(db, "requests"), { userId: auth.currentUser.uid, amount: a, type: curType, status: 'pending', timestamp: serverTimestamp() });
+                alert("Sent!"); closeMod();
             }
-        });
-
-        window.updateGlobalPlan = async () => {
-            await setDoc(planRef, {
-                invest: parseFloat(document.getElementById('planInv').value),
-                profit: parseFloat(document.getElementById('planProf').value),
-                percent: parseFloat(document.getElementById('planPerc').value),
-                days: parseInt(document.getElementById('planDays').value)
-            });
-            alert("Money Plan Updated Successfully!");
         };
-
-        // REQUESTS LOGIC
-        onSnapshot(collection(db, "requests"), (snap) => {
-            const list = document.getElementById('requestList');
-            list.innerHTML = "<table><tr><th>Type</th><th>Amount</th><th>Action</th></tr>";
-            snap.forEach(d => {
-                const r = d.data();
-                if(r.status === 'pending') {
-                    list.innerHTML += `<tr>
-                        <td>${r.type}</td><td>₹${r.amount}</td>
-                        <td><button class="btn btn-approve" onclick="approveReq('${d.id}', '${r.userId}', ${r.amount}, '${r.type}')">Approve</button></td>
-                    </tr>`;
-                }
-            });
-            list.innerHTML += "</table>";
-        });
-
-        window.approveReq = async (reqId, uid, amt, type) => {
-            const uRef = doc(db, "users", uid);
-            const change = type === 'Deposit' ? amt : -amt;
-            await updateDoc(uRef, { walletBalance: increment(change) });
-            await updateDoc(doc(db, "requests", reqId), { status: 'approved' });
-            alert("Approved!");
-        };
-
-        // USERS LOGIC
-        onSnapshot(collection(db, "users"), (snap) => {
-            const list = document.getElementById('userList');
-            list.innerHTML = "<table><tr><th>User</th><th>Profit %</th><th>Action</th></tr>";
-            snap.forEach(d => {
-                const u = d.data();
-                list.innerHTML += `<tr>
-                    <td>${u.name}<br><small>${u.walletBalance.toFixed(1)}</small></td>
-                    <td><input type="number" id="rate-${d.id}" value="${u.profitRate}" style="width:60px"></td>
-                    <td><button class="btn btn-approve" onclick="updateRate('${d.id}')">Set</button></td>
-                </tr>`;
-            });
-            list.innerHTML += "</table>";
-        });
-
-        window.updateRate = async (id) => {
-            const newRate = parseFloat(document.getElementById('rate-'+id).value);
-            await updateDoc(doc(db, "users", id), { profitRate: newRate });
-            alert("Rate Updated!");
-        };
+        window.logout = () => signOut(auth);
     </script>
 </body>
 </html>
