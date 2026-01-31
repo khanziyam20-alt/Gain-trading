@@ -2,79 +2,80 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Dashboard</title>
+    <title>Admin Panel | Trading Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #2563eb; --accent: #10b981; --bg: #020617; --card: #0f172a; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; }
-        .stat-card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
-        .label { color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; }
-        .value { font-size: 2rem; font-weight: 800; color: var(--accent); margin: 5px 0; }
-        .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; }
-        .modal-box { background: var(--card); padding: 30px; border-radius: 25px; width: 85%; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 10px; border: 1px solid #334155; background: #020617; color: white; }
+        body { font-family: 'Plus Jakarta Sans'; background: #020617; color: white; padding: 20px; }
+        .card { background: #0f172a; padding: 25px; border-radius: 25px; border: 1px solid #1e293b; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; color: #64748b; font-size: 0.8rem; padding-bottom: 10px; }
+        td { padding: 15px 0; border-bottom: 1px solid #1e293b; }
+        .btn { background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 10px; cursor: pointer; }
+        input { background: #020617; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; width: 60px; }
     </style>
 </head>
 <body>
-    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-        <h3 id="userName">Loading...</h3>
-        <button onclick="logout()" style="background:#ef4444; color:white; border:none; border-radius:8px; padding:5px 15px;">Logout</button>
-    </div>
-
-    <div class="stat-card">
-        <div class="label">Main Balance</div>
-        <div class="value" id="mainBal">₹0.00</div>
-        <div style="display:flex; gap:10px;">
-            <button class="btn" style="background:var(--accent); color:white" onclick="openMod('Deposit')">Add Money</button>
-            <button class="btn" style="background:#f59e0b; color:white" onclick="openMod('Withdraw')">Withdraw</button>
+    <div class="card">
+        <h2>Money Plan Editor</h2>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+            <input type="number" id="pI" placeholder="Invest" style="width:100%">
+            <input type="number" id="pP" placeholder="Profit" style="width:100%">
         </div>
+        <button class="btn" style="width:100%; margin-top:15px; background:#2563eb" onclick="savePlan()">Update Global Plan</button>
     </div>
 
-    <div class="stat-card">
-        <div class="label">Live Profit</div>
-        <div class="value" style="color:#38bdf8" id="liveInv">₹0.00</div>
-        <button class="btn" style="background:var(--primary); color:white" id="cashout">Cash Out</button>
+    <div class="card">
+        <h2>Pending Requests</h2>
+        <div id="rList">Loading...</div>
     </div>
 
-    <div class="stat-card">
-        <button class="btn" style="background:#1e293b; color:white" onclick="openPlan()">View Money Plans</button>
+    <div class="card">
+        <h2>Manage Users</h2>
+        <div id="uList">Loading...</div>
     </div>
-
-    <div id="pop" class="modal"><div class="modal-box"><h2 id="pTitle"></h2><input type="number" id="pAmt"><button class="btn" style="background:var(--primary); color:white" onclick="submitReq()">Submit</button><button class="btn" style="background:none; color:gray" onclick="closeMod()">Cancel</button></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, increment, addDoc, collection, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, increment, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs", authDomain: "gain-trading.firebaseapp.com", projectId: "gain-trading", storageBucket: "gain-trading.firebasestorage.app", messagingSenderId: "158325829948", appId: "1:158325829948:web:004921f55b11297c596e39" };
-        const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app);
-        let uRef, uData, curType;
+        const app = initializeApp(firebaseConfig); const db = getFirestore(app);
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                uRef = doc(db, "users", user.uid);
-                document.getElementById('userName').innerText = user.displayName;
-                onSnapshot(uRef, (s) => {
-                    uData = s.data();
-                    document.getElementById('mainBal').innerText = `₹${uData.walletBalance.toFixed(2)}`;
-                    document.getElementById('liveInv').innerText = `₹${uData.investBalance.toFixed(2)}`;
-                });
-            } else { window.location.href = "index.html"; }
+        // Update Plan
+        window.savePlan = async () => {
+            await setDoc(doc(db, "plans", "current"), { invest: document.getElementById('pI').value, profit: document.getElementById('pP').value });
+            alert("Plan Updated!");
+        };
+
+        // Requests Sync
+        onSnapshot(collection(db, "requests"), (sn) => {
+            const l = document.getElementById('rList'); l.innerHTML = '<table><tr><th>User</th><th>Amount</th><th>Action</th></tr>';
+            sn.forEach(d => {
+                const r = d.data();
+                if(r.status === 'pending') {
+                    l.innerHTML += `<tr><td>${r.type}</td><td>₹${r.amount}</td><td><button class="btn" onclick="appr('${d.id}', '${r.userId}', ${r.amount}, '${r.type}')">Approve</button></td></tr>`;
+                }
+            });
+            l.innerHTML += '</table>';
         });
 
-        window.openMod = (t) => { curType = t; document.getElementById('pTitle').innerText = t; document.getElementById('pop').style.display='flex'; };
-        window.closeMod = () => { document.getElementById('pop').style.display='none'; };
-        window.submitReq = async () => {
-            const a = parseFloat(document.getElementById('pAmt').value);
-            if(a > 0) {
-                await addDoc(collection(db, "requests"), { userId: auth.currentUser.uid, amount: a, type: curType, status: 'pending', timestamp: serverTimestamp() });
-                alert("Sent!"); closeMod();
-            }
+        window.appr = async (rid, uid, a, t) => {
+            const ch = t === 'Deposit' ? a : -a;
+            await updateDoc(doc(db, "users", uid), { walletBalance: increment(ch) });
+            await updateDoc(doc(db, "requests", rid), { status: 'approved' });
         };
-        window.logout = () => signOut(auth);
+
+        // Users Sync
+        onSnapshot(collection(db, "users"), (sn) => {
+            const l = document.getElementById('uList'); l.innerHTML = '<table>';
+            sn.forEach(d => {
+                const u = d.data();
+                l.innerHTML += `<tr><td>${u.name}</td><td><input type="number" value="${u.profitRate}" onchange="setRate('${d.id}', this.value)">%</td></tr>`;
+            });
+            l.innerHTML += '</table>';
+        });
+
+        window.setRate = async (id, v) => { await updateDoc(doc(db, "users", id), { profitRate: parseFloat(v) }); };
     </script>
 </body>
 </html>
