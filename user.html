@@ -3,81 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Money Control - Pro Dashboard</title>
+    <title>Money Control Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #2563eb; --accent: #10b981; --bg: #020617; --card: #0f172a; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; }
         
-        /* Stats Cards */
         .stat-card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; }
         .label { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; }
         .value { font-size: 2.2rem; font-weight: 800; color: var(--accent); margin: 5px 0; }
+
+        /* Unique Professional Popup */
+        .custom-popup { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); backdrop-filter: blur(8px); justify-content: center; align-items: center; z-index: 10000; }
+        .popup-content { background: var(--card); padding: 30px; border-radius: 28px; width: 85%; max-width: 350px; text-align: center; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         
-        /* Professional Modal */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: var(--card); padding: 30px; border-radius: 24px; width: 90%; max-width: 380px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
-        .modal-h2 { margin-top: 0; font-size: 1.5rem; color: white; }
-        
-        /* Buttons & Inputs */
-        .action-btn { width: 100%; padding: 14px; border: none; border-radius: 14px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-        .btn-deposit { background: var(--accent); color: white; }
-        .btn-withdraw { background: #f59e0b; color: white; }
-        .btn-close { background: transparent; color: #94a3b8; font-size: 0.9rem; margin-top: 15px; }
-        
-        input { width: 100%; padding: 14px; margin: 15px 0; border-radius: 12px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; font-size: 1rem; }
-        
-        /* History Section */
-        .history-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
-        .status-pending { color: #f59e0b; }
-        .status-approved { color: var(--accent); }
+        /* Plan Chart Style */
+        .plan-table { width: 100%; margin: 20px 0; border-collapse: collapse; background: rgba(255,255,255,0.02); border-radius: 12px; overflow: hidden; }
+        .plan-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }
+        .plan-val { font-weight: 800; color: #38bdf8; text-align: right; }
+
+        .action-btn { width: 100%; padding: 14px; border: none; border-radius: 14px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .btn-main { background: var(--primary); color: white; }
+        input { width: 100%; padding: 15px; margin: 15px 0; border-radius: 12px; border: 1px solid #334155; background: #020617; color: white; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2 id="userName" style="margin:0">Dashboard</h2>
-        <button onclick="logout()" style="background:#ef4444; border:none; padding:8px 15px; border-radius:8px; color:white; font-weight:bold;">Logout</button>
+        <button onclick="logout()" style="background:#ef4444; border:none; padding:8px 12px; border-radius:8px; color:white; font-size:0.8rem;">Logout</button>
     </div>
 
     <div class="stat-card">
-        <div class="label">Main Wallet Balance</div>
+        <div class="label">Total Balance</div>
         <div class="value" id="mainBalance">₹0.00</div>
         <div style="display: flex; gap: 10px;">
-            <button class="action-btn btn-deposit" onclick="openModal('Deposit')">Add Money</button>
-            <button class="action-btn btn-withdraw" onclick="openModal('Withdraw')">Withdraw</button>
+            <button class="action-btn" style="background:var(--accent); color:white" onclick="showReq('Deposit')">Add Money</button>
+            <button class="action-btn" style="background:#f59e0b; color:white" onclick="showReq('Withdraw')">Withdraw</button>
         </div>
     </div>
 
-    <div class="stat-card">
-        <div class="label">Live Trading Profit</div>
-        <div class="value" style="color:#38bdf8" id="liveInvest">₹0.00</div>
-        <div id="rateText" style="font-size: 0.75rem; color:#38bdf8; margin-bottom: 10px;">Profit Rate: 0% per min</div>
-        <button class="action-btn" style="background:#f43f5e; color:white;" id="cashOutBtn">Cash Out to Wallet</button>
+    <div class="stat-card" style="border: 1px solid var(--primary);">
+        <div class="label" style="color:var(--primary)">Exclusive Offers</div>
+        <button class="action-btn btn-main" onclick="openPlan()">View Money Plans</button>
     </div>
 
     <div class="stat-card">
-        <div class="label" style="margin-bottom: 15px;">Recent Transactions</div>
-        <div id="historyList">
-            <div style="text-align: center; color: #475569; padding: 10px;">Loading History...</div>
+        <div class="label">Recent History</div>
+        <div id="miniHistory" style="margin-top:15px; font-size:0.85rem;"></div>
+        <button class="action-btn" style="background:#334155; color:white" onclick="window.location.href='history.html'">Full History</button>
+    </div>
+
+    <div id="reqPopup" class="custom-popup">
+        <div class="popup-content">
+            <h2 id="popTitle" style="margin-top:0">Request</h2>
+            <input type="number" id="popAmt" placeholder="Enter Amount (₹)">
+            <button class="action-btn btn-main" onclick="confirmReq()">Submit Request</button>
+            <button class="action-btn" style="background:transparent; color:#94a3b8" onclick="closePop('reqPopup')">Cancel</button>
         </div>
-        <button class="action-btn" style="background:#334155; color:white;" onclick="window.location.href='history.html'">View Full History</button>
     </div>
 
-    <div id="reqModal" class="modal">
-        <div class="modal-content">
-            <h2 class="modal-h2" id="modalTitle">Request</h2>
-            <p id="modalSub" style="color:#94a3b8; font-size: 0.9rem;">Enter the amount to proceed</p>
-            <input type="number" id="reqAmount" placeholder="Amount (₹)">
-            <button class="action-btn btn-deposit" id="modalSubmitBtn" onclick="submitRequest()">Submit Request</button>
-            <button class="action-btn btn-close" onclick="closeModal()">Cancel</button>
+    <div id="planPopup" class="custom-popup">
+        <div class="popup-content">
+            <h2 style="margin-top:0; color:var(--primary)">Investment Plan</h2>
+            <table class="plan-table">
+                <tr><td>Invest</td><td class="plan-val" id="pInvest">₹0</td></tr>
+                <tr><td>Profit</td><td class="plan-val" id="pProfit" style="color:var(--accent)">₹0</td></tr>
+                <tr><td>Percentage</td><td class="plan-val" id="pPercent">0%</td></tr>
+                <tr><td>Duration</td><td class="plan-val" id="pDays">0 Days</td></tr>
+            </table>
+            <button class="action-btn btn-main" onclick="closePop('planPopup')">Close Chart</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, increment, collection, addDoc, serverTimestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, collection, addDoc, serverTimestamp, query, where, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
@@ -91,87 +93,65 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        let userRef, currentType, currentBal, invBal, rate;
+        let currentType, userUID;
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                userRef = doc(db, "users", user.uid);
-                document.getElementById('userName').innerText = "Hello, " + user.displayName;
-                
-                onSnapshot(userRef, (ds) => {
-                    const d = ds.data();
-                    currentBal = d.walletBalance;
-                    invBal = d.investBalance;
-                    rate = d.profitRate;
-                    document.getElementById('mainBalance').innerText = `₹${currentBal.toFixed(2)}`;
-                    document.getElementById('liveInvest').innerText = `₹${invBal.toFixed(2)}`;
-                    document.getElementById('rateText').innerText = `Profit Rate: ${rate}% per minute`;
+                userUID = user.uid;
+                onSnapshot(doc(db, "users", user.uid), (ds) => {
+                    document.getElementById('mainBalance').innerText = `₹${ds.data().walletBalance.toFixed(2)}`;
                 });
 
-                // FIXED HISTORY LOGIC
-                const q = query(collection(db, "requests"), where("userId", "==", user.uid));
+                // History Fix: Fetch without complex order first
+                const q = query(collection(db, "requests"), where("userId", "==", user.uid), limit(3));
                 onSnapshot(q, (snap) => {
-                    const list = document.getElementById('historyList');
-                    list.innerHTML = snap.empty ? '<div style="text-align:center; color:#475569;">No transactions yet</div>' : '';
-                    let docs = [];
-                    snap.forEach(d => docs.push(d.data()));
-                    docs.sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
-                    
-                    docs.slice(0, 3).forEach(r => {
-                        list.innerHTML += `<div class="history-item">
-                            <span>${r.type}</span>
-                            <span style="font-weight:bold">₹${r.amount}</span>
-                            <span class="status-${r.status}">${r.status}</span>
+                    const div = document.getElementById('miniHistory');
+                    div.innerHTML = snap.empty ? 'No records' : '';
+                    snap.forEach(d => {
+                        const r = d.data();
+                        div.innerHTML += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #1e293b">
+                            <span>${r.type}</span><b>₹${r.amount}</b><span style="color:${r.status==='approved'?'#10b981':'#f59e0b'}">${r.status}</span>
                         </div>`;
                     });
                 });
-
-                // 10 Paise Profit Logic
-                setInterval(async () => {
-                    if(invBal > 0 && rate > 0) {
-                        let profit = (invBal * (rate/100)) * (5/60); // 5 sec calculation
-                        if(profit >= 0.10) {
-                            await updateDoc(userRef, { investBalance: increment(profit), lastUpdate: serverTimestamp() });
-                        }
-                    }
-                }, 5000);
-
-            } else { window.location.href = "index.html"; }
+            }
         });
 
-        // Professional Modal Logic
-        window.openModal = (type) => {
-            currentType = type;
-            document.getElementById('modalTitle').innerText = type + " Funds";
-            document.getElementById('modalSubmitBtn').style.background = type === 'Deposit' ? '#10b981' : '#f59e0b';
-            document.getElementById('reqModal').style.display = 'flex';
-        }
-        window.closeModal = () => { document.getElementById('reqModal').style.display = 'none'; }
+        // Money Plan Logic
+        window.openPlan = async () => {
+            const snap = await getDocs(collection(db, "plans"));
+            if(!snap.empty) {
+                const p = snap.docs[0].data();
+                document.getElementById('pInvest').innerText = `₹${p.invest}`;
+                document.getElementById('pProfit').innerText = `₹${p.profit}`;
+                document.getElementById('pPercent').innerText = `${p.percent}%`;
+                document.getElementById('pDays').innerText = `${p.days} Days`;
+                document.getElementById('planPopup').style.display = 'flex';
+            }
+        };
 
-        window.submitRequest = async () => {
-            const amt = parseFloat(document.getElementById('reqAmount').value);
+        window.showReq = (type) => {
+            currentType = type;
+            document.getElementById('popTitle').innerText = type + " Money";
+            document.getElementById('reqPopup').style.display = 'flex';
+        };
+
+        window.confirmReq = async () => {
+            const amt = parseFloat(document.getElementById('popAmt').value);
             if(amt > 0) {
-                if(currentType === 'Withdraw' && amt > currentBal) return alert("Insufficient Balance");
                 await addDoc(collection(db, "requests"), {
-                    userId: auth.currentUser.uid,
-                    userEmail: auth.currentUser.email,
+                    userId: userUID,
                     amount: amt,
                     type: currentType,
                     status: 'pending',
                     timestamp: serverTimestamp()
                 });
-                alert("Request Submitted Successfully!");
-                closeModal();
+                closePop('reqPopup');
+                alert("Request Sent to Admin!");
             }
         };
 
-        document.getElementById('cashOutBtn').onclick = async () => {
-            if(invBal > 0) {
-                await updateDoc(userRef, { walletBalance: increment(invBal), investBalance: 0 });
-                alert("Paisa Wallet mein bhej diya gaya!");
-            }
-        };
-
+        window.closePop = (id) => { document.getElementById(id).style.display = 'none'; };
         window.logout = () => signOut(auth);
     </script>
 </body>
