@@ -2,47 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Command Center</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <title>Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans'; background: #020617; color: white; padding: 20px; }
-        .card { background: #0f172a; padding: 25px; border-radius: 25px; margin-bottom: 20px; border: 1px solid #1e293b; }
+        .card { background: #0f172a; padding: 20px; border-radius: 20px; border: 1px solid #1e293b; margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; }
-        td, th { padding: 12px; border-bottom: 1px solid #1e293b; text-align: left; }
-        .btn { padding: 8px 15px; border-radius: 8px; border: none; cursor: pointer; background: #2563eb; color: white; }
-        input { background: #020617; border: 1px solid #334155; color: white; padding: 8px; border-radius: 5px; }
+        td { padding: 15px 10px; border-bottom: 1px solid #1e293b; }
+        .btn { background: #2563eb; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+        input { background: #020617; border: 1px solid #334155; color: white; padding: 5px; border-radius: 5px; width: 60px; }
     </style>
 </head>
 <body>
-
     <div class="card">
-        <h2>Set Money Plan Chart</h2>
-        Invest: <input type="number" id="pI"> Profit: <input type="number" id="pP"> Days: <input type="number" id="pD">
-        <button class="btn" onclick="savePlan()">Update Plan</button>
+        <h2>Requests Management</h2>
+        <div id="rList">Loading...</div>
     </div>
-
     <div class="card">
-        <h2>Pending Requests</h2>
-        <div id="rList"></div>
-    </div>
-
-    <div class="card">
-        <h2>Manage Users</h2>
-        <div id="uList"></div>
+        <h2>All Users (Live)</h2>
+        <div id="uList">Loading...</div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, increment, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs", authDomain: "gain-trading.firebaseapp.com", projectId: "gain-trading", storageBucket: "gain-trading.firebasestorage.app", messagingSenderId: "158325829948", appId: "1:158325829948:web:004921f55b11297c596e39" };
         const app = initializeApp(firebaseConfig); const db = getFirestore(app);
 
-        window.savePlan = async () => {
-            await setDoc(doc(db, "plans", "current"), { invest: document.getElementById('pI').value, profit: document.getElementById('pP').value, days: document.getElementById('pD').value });
-            alert("Plan Updated!");
-        };
-
+        // Manage Requests
         onSnapshot(collection(db, "requests"), (sn) => {
             const l = document.getElementById('rList'); l.innerHTML = '<table>';
             sn.forEach(d => {
@@ -59,11 +47,12 @@
             await updateDoc(doc(db, "requests", rid), { status: 'approved' });
         };
 
+        // Manage All Users (Fixed New User Visibility)
         onSnapshot(collection(db, "users"), (sn) => {
-            const l = document.getElementById('uList'); l.innerHTML = '<table>';
+            const l = document.getElementById('uList'); l.innerHTML = '<table><tr><th>Name</th><th>Balance</th><th>Rate %</th></tr>';
             sn.forEach(d => {
                 const u = d.data();
-                l.innerHTML += `<tr><td>${u.name}</td><td><input type="number" value="${u.profitRate}" onchange="setR('${d.id}',this.value)">%</td></tr>`;
+                l.innerHTML += `<tr><td>${u.name}</td><td>₹${u.walletBalance.toFixed(1)}</td><td><input type="number" value="${u.profitRate}" onchange="setR('${d.id}',this.value)"></td></tr>`;
             });
         });
 
