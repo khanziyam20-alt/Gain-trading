@@ -2,39 +2,126 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trading Pro | Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Money Control - Smart Trading</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #020617; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Plus Jakarta Sans'; }
-        .card { background: #0f172a; padding: 40px; border-radius: 30px; border: 1px solid #1e293b; text-align: center; width: 85%; max-width: 350px; }
-        .logo { font-size: 2rem; font-weight: 800; background: linear-gradient(90deg, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 30px; }
-        .btn-google { width: 100%; padding: 14px; border: none; border-radius: 12px; background: white; color: #020617; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        :root {
+            --primary: #2563eb;
+            --bg: #020617;
+            --card-glass: rgba(15, 23, 42, 0.8);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: var(--bg); color: white; overflow: hidden;
+        }
+        /* Full Screen Background Layout */
+        .main-container {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            padding: 20px;
+            background: radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.15) 0%, transparent 80%);
+        }
+        .logo-section { text-align: center; margin-bottom: 40px; }
+        .app-logo {
+            width: 100px; height: 100px; background: var(--primary);
+            border-radius: 24px; margin: 0 auto 20px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 3rem; box-shadow: 0 20px 40px rgba(37, 99, 235, 0.3);
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        h1 { font-size: 2.5rem; font-weight: 800; margin: 0; letter-spacing: -1px; }
+        .tagline { color: #94a3b8; font-size: 1.1rem; margin-top: 10px; font-style: italic; }
+
+        /* Enhanced Google Button */
+        .login-box { width: 100%; max-width: 340px; }
+        .google-btn { 
+            background: white; color: #0f172a; border: none; 
+            width: 100%; padding: 18px; border-radius: 20px;
+            font-weight: 700; font-size: 1.1rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            gap: 15px; transition: 0.3s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .google-btn:active { transform: scale(0.96); }
+        .google-icon { width: 24px; height: 24px; display: block; }
+
+        .footer {
+            position: absolute; bottom: 30px;
+            font-size: 0.8rem; color: #475569; text-align: center;
+        }
+        .footer strong { color: #94a3b8; }
+        #status { margin-top: 20px; font-size: 0.9rem; color: #10b981; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div class="logo">TRADING PRO</div>
-        <button class="btn-google" onclick="login()">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" width="20"> Login with Google
-        </button>
+
+    <div class="main-container">
+        <div class="logo-section">
+            <div class="app-logo">📈</div>
+            <h1>Money Control</h1>
+            <p class="tagline">"Apne paiso ko kaam par lagaye"</p>
+        </div>
+
+        <div class="login-box">
+            <button class="google-btn" id="loginBtn">
+                <img class="google-icon" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+                Continue with Google
+            </button>
+            <div id="status" style="text-align: center;"></div>
+        </div>
+
+        <div class="footer">
+            Design & Developed by <strong>Mohd Shahrukh</strong>
+        </div>
     </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const firebaseConfig = { apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs", authDomain: "gain-trading.firebaseapp.com", projectId: "gain-trading", storageBucket: "gain-trading.firebasestorage.app", messagingSenderId: "158325829948", appId: "1:158325829948:web:004921f55b11297c596e39" };
-        const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app);
+        const firebaseConfig = {
+            apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
+            authDomain: "gain-trading.firebaseapp.com",
+            projectId: "gain-trading",
+            storageBucket: "gain-trading.firebasestorage.app",
+            messagingSenderId: "158325829948",
+            appId: "1:158325829948:web:004921f55b11297c596e39"
+        };
 
-        window.login = async () => {
-            const res = await signInWithPopup(auth, new GoogleAuthProvider());
-            const uRef = doc(db, "users", res.user.uid);
-            const snap = await getDoc(uRef);
-            if(!snap.exists()) {
-                await setDoc(uRef, { name: res.user.displayName, walletBalance: 0, investBalance: 0, profitRate: 0.1 }); // Default 0.1% rate
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        onAuthStateChanged(auth, (user) => { if (user) window.location.href = "user.html"; });
+
+        document.getElementById('loginBtn').onclick = async () => {
+            const status = document.getElementById('status');
+            status.innerText = "Securing Connection...";
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                const userRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userRef);
+
+                if (!userSnap.exists()) {
+                    await setDoc(userRef, {
+                        name: user.displayName,
+                        email: user.email,
+                        walletBalance: 0,
+                        profitRate: 0,
+                        lastUpdate: serverTimestamp()
+                    });
+                }
+                window.location.href = "user.html";
+            } catch (error) {
+                status.innerText = "Error: " + error.message;
             }
-            window.location.href = "user.html";
         };
     </script>
 </body>
