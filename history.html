@@ -3,48 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transaction History - Money Control</title>
+    <title>Transaction History | Trading Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #020617; --card: #0f172a; --primary: #2563eb; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: white; padding: 20px; }
-        .header { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; }
-        .back-btn { background: var(--card); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 8px 15px; border-radius: 10px; text-decoration: none; font-size: 0.9rem; }
+        :root { --primary: #2563eb; --accent: #10b981; --bg: #020617; --card: #0f172a; --danger: #f43f5e; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; }
         
-        .history-card { background: var(--card); border-radius: 20px; padding: 20px; border: 1px solid rgba(255,255,255,0.05); }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .item:last-child { border: none; }
-        .type { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
-        .date { color: #64748b; font-size: 0.75rem; }
-        .amount { font-weight: 800; font-size: 1.1rem; }
-        .status { font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; font-weight: bold; }
-        .approved { color: #10b981; background: rgba(16, 185, 129, 0.1); }
-        .pending { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+        .header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .back-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 15px; border-radius: 12px; cursor: pointer; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+        
+        .history-container { background: var(--card); border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: rgba(255,255,255,0.02); text-align: left; padding: 15px; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+        td { padding: 18px 15px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.9rem; }
+        
+        .type-badge { font-weight: 700; }
+        .status-pill { padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
+        .status-pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+        .status-approved { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+        
+        .empty-state { text-align: center; padding: 50px 20px; color: #64748b; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <a href="user.html" class="back-btn">← Back</a>
-        <h2 style="margin:0">Transactions</h2>
+        <h2 style="margin:0; font-size: 1.2rem;">Transaction History</h2>
     </div>
 
-    <div class="history-card" id="historyContainer">
-        <div style="text-align:center; padding:40px; color:#475569;">Fetching your records...</div>
+    <div class="history-container">
+        <table id="historyTable">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="historyBody">
+                </tbody>
+        </table>
+        <div id="noData" class="empty-state" style="display:none;">
+            <p>No transactions found yet.</p>
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs",
-            authDomain: "gain-trading.firebaseapp.com",
-            projectId: "gain-trading",
-            storageBucket: "gain-trading.firebasestorage.app",
-            messagingSenderId: "158325829948",
-            appId: "1:158325829948:web:004921f55b11297c596e39"
+        // Same Config as your other files
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs", 
+            authDomain: "gain-trading.firebaseapp.com", 
+            projectId: "gain-trading", 
+            storageBucket: "gain-trading.firebasestorage.app", 
+            messagingSenderId: "158325829948", 
+            appId: "1:158325829948:web:004921f55b11297c596e39" 
         };
 
         const app = initializeApp(firebaseConfig);
@@ -53,28 +70,40 @@
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                const q = query(collection(db, "requests"), where("userId", "==", user.uid), orderBy("timestamp", "desc"));
-                onSnapshot(q, (snap) => {
-                    const container = document.getElementById('historyContainer');
-                    container.innerHTML = snap.empty ? '<div style="text-align:center; color:#475569;">No transactions found.</div>' : '';
+                const q = query(collection(db, "requests"), where("userId", "==", user.uid));
+                
+                onSnapshot(q, (snapshot) => {
+                    const tbody = document.getElementById('historyBody');
+                    const noData = document.getElementById('noData');
                     
-                    snap.forEach(doc => {
-                        const data = doc.data();
-                        const date = data.timestamp ? data.timestamp.toDate().toLocaleString() : 'Processing...';
-                        container.innerHTML += `
-                            <div class="item">
-                                <div>
-                                    <div class="type">${data.type}</div>
-                                    <div class="date">${date}</div>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div class="amount" style="color:${data.type==='Withdraw'?'#ef4444':'#10b981'}">₹${data.amount}</div>
-                                    <span class="status ${data.status}">${data.status}</span>
-                                </div>
-                            </div>`;
+                    if (snapshot.empty) {
+                        tbody.innerHTML = "";
+                        noData.style.display = "block";
+                        return;
+                    }
+
+                    noData.style.display = "none";
+                    let rows = "";
+                    
+                    // Sorting manually to avoid Firebase Index requirements
+                    const docs = snapshot.docs.map(d => d.data());
+                    docs.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+
+                    docs.forEach(data => {
+                        const statusClass = data.status === 'approved' ? 'status-approved' : 'status-pending';
+                        rows += `
+                            <tr>
+                                <td class="type-badge">${data.type}</td>
+                                <td style="font-weight:800;">₹${data.amount.toLocaleString()}</td>
+                                <td><span class="status-pill ${statusClass}">${data.status}</span></td>
+                            </tr>
+                        `;
                     });
+                    tbody.innerHTML = rows;
                 });
-            } else { window.location.href = "index.html"; }
+            } else {
+                window.location.href = "index.html";
+            }
         });
     </script>
 </body>
