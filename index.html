@@ -4,41 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trading Pro | Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #2563eb; --bg: #020617; --card: #0f172a; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; color: white; }
-        .login-card { background: var(--card); padding: 40px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 380px; text-align: center; }
-        .logo { font-size: 2rem; font-weight: 800; background: linear-gradient(to right, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 30px; }
-        .btn-google { width: 100%; padding: 15px; border: none; border-radius: 15px; background: white; color: black; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
+        body { margin: 0; background: #020617; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: 'Plus Jakarta Sans'; }
+        .card { background: #0f172a; padding: 40px; border-radius: 30px; border: 1px solid #1e293b; text-align: center; width: 85%; max-width: 350px; }
+        .logo { font-size: 2rem; font-weight: 800; background: linear-gradient(90deg, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 30px; }
+        .btn-google { width: 100%; padding: 14px; border: none; border-radius: 12px; background: white; color: #020617; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
     </style>
 </head>
 <body>
-    <div class="login-card">
+    <div class="card">
         <div class="logo">TRADING PRO</div>
         <button class="btn-google" onclick="login()">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" width="20">
-            Login with Google
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" width="20"> Login with Google
         </button>
     </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyBMicn5UaGmlpyjqyvHndQAqpBTIl5KKTs", authDomain: "gain-trading.firebaseapp.com", projectId: "gain-trading", storageBucket: "gain-trading.firebasestorage.app", messagingSenderId: "158325829948", appId: "1:158325829948:web:004921f55b11297c596e39" };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app);
 
         window.login = async () => {
             const res = await signInWithPopup(auth, new GoogleAuthProvider());
-            const user = res.user;
-            const uRef = doc(db, "users", user.uid);
+            const uRef = doc(db, "users", res.user.uid);
             const snap = await getDoc(uRef);
             if(!snap.exists()) {
-                await setDoc(uRef, { name: user.displayName, walletBalance: 0, investBalance: 0, profitRate: 0 });
+                await setDoc(uRef, { name: res.user.displayName, walletBalance: 0, investBalance: 0, profitRate: 0.1 }); // Default 0.1% rate
             }
             window.location.href = "user.html";
         };
